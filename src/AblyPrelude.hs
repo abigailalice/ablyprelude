@@ -4,6 +4,7 @@
 module AblyPrelude
     ( module X
     , fmap_
+    , bind
     , (.#)
     , (#.)
     , nfIO
@@ -11,6 +12,9 @@ module AblyPrelude
     , undefined
     ) where
 
+import "base" Data.String as X (IsString(..))
+import "base" Data.Function as X ((&))
+import "base" Data.Functor as X ((<&>), (<$), ($>))
 import "safe-exceptions" Control.Exception.Safe as X
     ( MonadThrow
     , MonadCatch
@@ -24,11 +28,13 @@ import "safe-exceptions" Control.Exception.Safe as X
     , bracket_
     , finally )
 import qualified Control.Exception as Exception
-import Control.Lens as X
 import Control.Applicative as X
+import Control.Monad as X
+import Data.Monoid as X
 import Prelude as X hiding (undefined)
 import Data.Text as X (Text)
 import Data.Foldable as X
+import Data.Maybe as X (isJust)
 
 import Data.Kind as X (Type)
 import Control.DeepSeq as X (NFData(..), force, deepseq)
@@ -42,16 +48,21 @@ import qualified Prelude as P
 fmap_ :: (Functor f) => a -> f unit -> f a
 fmap_ = (<$)
 
+bind :: (Monad m) => (a -> m b) -> m a -> m b
+bind = (=<<)
+
 {-# WARNING undefined "'undefined' remains in code" #-}
 undefined :: a
 undefined = P.undefined
 
 -- trace
 
+infixr 9 #.
 {-# INLINE (#.) #-}
 (#.) :: (X.Coercible b c) => (b -> c) -> (a -> b) -> a -> c
 (#.) _ = X.coerce
 
+infixr 9 .#
 {-# INLINE (.#) #-}
 (.#) :: (X.Coercible a b) => (b -> c) -> (a -> b) -> (a -> c)
 (.#) f _ = X.coerce f
