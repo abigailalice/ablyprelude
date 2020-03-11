@@ -10,11 +10,31 @@ module AblyPrelude
     , nfIO
     , whnfIO
     , undefined
+    --, type List1
     ) where
 
-import "base" Data.String as X (IsString(..))
-import "base" Data.Function as X ((&))
-import "base" Data.Functor as X ((<&>), (<$), ($>))
+-- import Data.List.NonEmpty
+import Data.Function as X ((&))
+import Data.Functor as X ((<&>), (<$), ($>))
+import Data.Foldable as X
+import Data.Maybe as X (isJust)
+import Data.Monoid as X
+import Data.String as X (IsString(..))
+import Data.Text as X (Text)
+import Data.Void as X (Void, absurd)
+import Control.Applicative as X
+import Control.Monad as X
+import Prelude as X hiding (undefined)
+
+import Data.Kind as X (Type)
+import Control.DeepSeq as X (NFData(..), force, deepseq)
+import Data.Coerce as X (Coercible, coerce)
+import Data.Proxy as X (Proxy(..))
+import System.IO.Unsafe as X (unsafePerformIO)
+
+import qualified Prelude as P
+
+
 import "safe-exceptions" Control.Exception.Safe as X
     ( MonadThrow
     , MonadCatch
@@ -28,28 +48,17 @@ import "safe-exceptions" Control.Exception.Safe as X
     , bracket_
     , finally )
 import qualified Control.Exception as Exception
-import Control.Applicative as X
-import Control.Monad as X
-import Data.Monoid as X
-import Prelude as X hiding (undefined)
-import Data.Text as X (Text)
-import Data.Foldable as X
-import Data.Maybe as X (isJust)
 
-import Data.Kind as X (Type)
-import Control.DeepSeq as X (NFData(..), force, deepseq)
-import Data.Coerce as X (Coercible, coerce)
-import Data.Proxy as X (Proxy(..))
-import System.IO.Unsafe as X (unsafePerformIO)
-
-import qualified Prelude as P
 
 {-# INLINE fmap_ #-}
 fmap_ :: (Functor f) => a -> f unit -> f a
 fmap_ = (<$)
 
+{-# INLINE bind #-}
 bind :: (Monad m) => (a -> m b) -> m a -> m b
 bind = (=<<)
+
+-- type List1 a = NonEmpty a
 
 {-# WARNING undefined "'undefined' remains in code" #-}
 undefined :: a

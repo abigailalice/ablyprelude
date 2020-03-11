@@ -5,9 +5,10 @@
 module AblyPrelude.Partial
     ( Partial(..)
     , runPartial
+    , head
     ) where
 
-import Data.List.NonEmpty
+import Data.List.NonEmpty hiding (head)
 import Data.Text (Text)
 import Prelude hiding (head)
 import Data.Proxy (Proxy(..))
@@ -28,6 +29,10 @@ _TraceBack :: (Functor f)
 _TraceBack f (TraceBack x) = TraceBack <$> f x
 instance Exception TraceBack
 
+head :: (Partial s) => proxy s -> [a] -> a
+head _ (x : _) = x
+head p _ = partial p
+
 -- If viewing the type
 --   (Partial s => r) ~ (NonEmpty Text -> r)
 -- then stackFrame is simply
@@ -47,4 +52,5 @@ runPartial
     -> (forall s. (Partial s) => Proxy s -> r)
     -> r
 runPartial msg m = Reflection.reify (TraceBack (pure msg)) m
+
 

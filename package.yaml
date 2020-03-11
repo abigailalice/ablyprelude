@@ -35,6 +35,9 @@ dependencies:
 - reflection
 - random
 - MonadRandom
+- foldl
+- linear
+- profunctors
 
 default-extensions:
 - DeriveAnyClass
@@ -45,12 +48,14 @@ default-extensions:
 - DeriveTraversable
 - DerivingStrategies
 - DeriveGeneric
+- DerivingVia
 - StandaloneDeriving
 - GeneralizedNewtypeDeriving
 - PolyKinds
 - KindSignatures
 - DataKinds
 - LambdaCase
+- BangPatterns
 - BlockArguments
 - RankNTypes
 - ScopedTypeVariables
@@ -66,6 +71,8 @@ default-extensions:
 - TypeFamilyDependencies
 - TypeApplications
 - TypeOperators
+- ViewPatterns
+- NoImplicitPrelude
 
 ghc-options:
 - -Wall

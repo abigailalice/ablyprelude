@@ -6,6 +6,7 @@ module AblyPrelude.Lens
     ( module X
     , (++=)
     , foldMapOf#
+    , observe
     ) where
 
 import "lens" Control.Lens as X
@@ -14,7 +15,7 @@ import "lens" Control.Lens as X
     , Each(..), Ixed(..), At(..), Contains(..), Strict(..), lazy
     , type Lens, type Lens', type Prism, type Prism', type Iso, type Iso'
     , type Traversal, type Traversal'
-    , under
+    , under, from
     , view, toListOf, preview, over, set, use, preuse, forOf, forOf_
     , (^.), (^..), (^?), (%~), (.~)
     , iview, toListOf, ipreview, iover, iset, iuse, ipreuse, iforOf, iforOf_
@@ -27,7 +28,8 @@ import "lens" Control.Lens as X
     , _Left, _Right, _Show, _Just, _Nothing
 
     -- isos
-    , IxValue, Index
+    , coerced
+    , IxValue, Index, 
     )
 import "generic-lens" Data.Generics.Product.Any as X (HasAny(..))
 import "generic-lens" Data.Generics.Product.Typed as X (HasType(..))
@@ -36,12 +38,14 @@ import "generic-lens" Data.Generics.Product.Constraints as X (HasConstraints(..)
 import "generic-lens" Data.Generics.Product.Param as X (HasParam(..))
 import "generic-lens" Data.Generics.Product.Positions as X (HasPosition(..))
 import Control.Lens hiding (set')
-import Control.Monad.Writer
+import qualified Control.Monad.Writer as Writer
+import qualified Control.Monad.State as State
 
-import AblyPrelude.Lens.Strict as X
+
 import AblyPrelude
+import AblyPrelude.Lens.Strict as X
 
-(++=) :: (MonadWriter w m) => ASetter' w a -> a -> m ()
+(++=) :: (Writer.MonadWriter w m) => ASetter' w a -> a -> m ()
 (++=) = scribe
 
 foldMapOf#
@@ -49,4 +53,6 @@ foldMapOf#
     => Iso' r w -> Getting w s a -> (a -> r) -> s -> r
 foldMapOf# c l f = view (from c) #. foldMapOf l (view c #. f)
 
+observe :: (State.MonadState s m) => LensLike' ((,) a) s a -> m a
+observe l = State.state (l (\x -> (x, x)))
 
