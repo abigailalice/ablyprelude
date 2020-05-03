@@ -2,3 +2,4 @@
 AblyPrelude.cabal
 *~
 **/.DS_Store
+*.lock

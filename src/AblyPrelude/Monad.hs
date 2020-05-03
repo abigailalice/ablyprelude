@@ -11,3 +11,4 @@ import Control.Monad.Writer as X
 import Control.Monad.Except as X
 import Control.Monad.Cont as X
 --import Control.Monad.RWS.CPS as X
+import Control.Monad.Random as X

@@ -9,22 +9,28 @@ module AblyPrelude
     , (#.)
     , nfIO
     , whnfIO
-    , undefined
+    , show
     --, type List1
     ) where
 
+import qualified Prelude as Prelude
+import qualified Data.Text.Lens as Lens
+import qualified Control.Lens as Lens
+
+import GHC.Exts as X (IsList)
 -- import Data.List.NonEmpty
 import Data.Function as X ((&))
-import Data.Functor as X ((<&>), (<$), ($>))
+import Data.Functor as X ((<&>), ($>))
 import Data.Foldable as X
 import Data.Maybe as X (isJust)
 import Data.Monoid as X
 import Data.String as X (IsString(..))
 import Data.Text as X (Text)
+import Data.Text.IO as X (putStr, putStrLn)
 import Data.Void as X (Void, absurd)
 import Control.Applicative as X
 import Control.Monad as X
-import Prelude as X hiding (undefined)
+import Prelude as X hiding (undefined, putStr, putStrLn, show)
 
 import Data.Kind as X (Type)
 import Control.DeepSeq as X (NFData(..), force, deepseq)
@@ -32,7 +38,7 @@ import Data.Coerce as X (Coercible, coerce)
 import Data.Proxy as X (Proxy(..))
 import System.IO.Unsafe as X (unsafePerformIO)
 
-import qualified Prelude as P
+
 
 
 import "safe-exceptions" Control.Exception.Safe as X
@@ -58,11 +64,12 @@ fmap_ = (<$)
 bind :: (Monad m) => (a -> m b) -> m a -> m b
 bind = (=<<)
 
+show :: (Show a, Lens.IsText b) => a -> b
+show = Lens.view Lens.packed . Prelude.show
+
+
 -- type List1 a = NonEmpty a
 
-{-# WARNING undefined "'undefined' remains in code" #-}
-undefined :: a
-undefined = P.undefined
 
 -- trace
 

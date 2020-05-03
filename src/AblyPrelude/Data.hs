@@ -6,9 +6,9 @@ module AblyPrelude.Data
     , type Bytes
     , type LBytes
     , type LText
-    , _Serialize
     , readFile
     , writeFile
+    , IsUTF8(..)
     ) where
 
 import Prelude hiding (readFile, writeFile)
@@ -16,7 +16,7 @@ import Prelude hiding (readFile, writeFile)
 import           "cereal" Data.Serialize as X (Serialize)
 import           "dlist" Data.DList as X (DList)
 import           "unordered-containers" Data.HashSet as X (HashSet)
---import           "unordered-containers" Data.HashMap as X (HashMap)
+import           "unordered-containers" Data.HashMap.Strict as X (HashMap)
 import           "containers" Data.IntMap as X (IntMap)
 import           "containers" Data.IntSet as X (IntSet)
 import           "containers" Data.Set as X (Set)
@@ -27,14 +27,23 @@ import qualified "bytestring" Data.ByteString
 import qualified "bytestring" Data.ByteString.Lazy
 
 import qualified Control.Lens as Lens
+import qualified Data.Text.Strict.Lens
+import qualified Data.Text.Lazy.Lens
 import qualified Data.Serialize as Serialize
 
 type LText = Data.Text.Lazy.Text
 type Bytes = Data.ByteString.ByteString
 type LBytes = Data.ByteString.Lazy.ByteString
 
+class IsUTF8 bytes text | bytes -> text , text -> bytes where
+    _UTF8 :: Lens.Prism' bytes text
+instance IsUTF8 LBytes LText where
+    _UTF8 = Data.Text.Lazy.Lens.utf8
+instance IsUTF8 Bytes Text where
+    _UTF8 = Data.Text.Strict.Lens.utf8
+
 _Serialize :: (Serialize a) => Lens.Prism' Bytes a
-_Serialize = Lens.prism' Serialize.encode (either (const Nothing) pure . Serialize.decode)
+_Serialize = Lens.prism' Serialize.encode (Lens.preview Lens._Right . Serialize.decode)
 
 readFile :: (Serialize a) => FilePath -> IO (Maybe a)
 readFile fp = fmap decode (Data.ByteString.readFile fp)
