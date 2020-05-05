@@ -1,5 +1,5 @@
 
-{-# LANGUAGE TemplateHaskell, RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell, RecordWildCards, OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Statistics
@@ -8,6 +8,7 @@ module Statistics
     , nullHypothesis
     , Freedom(..)
     , Options(..)
+    , printTable
 
     ) where
 
@@ -19,6 +20,8 @@ import AblyPrelude.Data
 import qualified Data.Map as Map
 
 import qualified Pipes.Prelude as Pipes
+import qualified Pipes
+import qualified Control.Foldl as Foldl
 import qualified AblyPrelude.Development as Development
 
 -- x-axis = control vs. intervention = x-axis
@@ -30,6 +33,7 @@ data Table a = Table
     , _x1y0 :: !a
     , _x1y1 :: !a
     } deriving (Foldable, Traversable, Functor, Show)
+
 Lens.makeLenses ''Table
 instance Applicative Table where
     pure a = Table a a a a
@@ -57,24 +61,25 @@ pY0 t = fromIntegral (y0 t) / fromIntegral (sum t)
 pY1 t = fromIntegral (y1 t) / fromIntegral (sum t)
 
 -- the difference in p(Y1|X0) and p(Y1|X1)
+-- the difference between the 
 zScore :: (Num a, Integral a) => Table a -> Double
 zScore t =
     let y1GivenX0 = fromIntegral (_x0y1 t) / fromIntegral (x0 t)
         y1GivenX1 = fromIntegral (_x1y1 t) / fromIntegral (x1 t)
-    in y1GivenX0 - y1GivenX1
+    in y1GivenX1 - y1GivenX0
 
-printTable :: (Show a, Num a) => Table a -> IO ()
+printTable :: forall a. (Show a, Num a) => Table a -> IO ()
 printTable
     = Development.printAsTable
-    . over (mapped . mapped) show
     . toLists
   where
     -- sequenceOf (traverse . traverse) :: [[b -> a]] -> b -> [[a]]
-    toLists :: (Num a) => Table a -> [[a]]
-    toLists = sequenceOf (traverse . traverse) 
-        [ [_x0y0, _x0y1, x0 ]
-        , [_x1y0, _x1y1, x1 ]
-        , [y0,    y1   , sum]]
+    toLists :: (Show a) => Table a -> [[Text]]
+    toLists t =
+        [ [""  , "Y0"   , "Y1"   , ""   ]
+        , ["X0", show $ _x0y0 t, show $ _x0y1 t, show $ x0 t ]
+        , ["X1", show $ _x1y0 t, show $ _x1y1 t, show $ x1 t ]
+        , [""  , show $ y0 t   , show $ y1 t, show $ sum t]]
 
 
 -- this could be done analytically with combinatoric functions, like
@@ -123,48 +128,6 @@ discreteCDF = uncurry normalize . integrate
         go :: k -> k -> Int -> (k, k)
         go z k v = let z' = z + fromIntegral v * k in (z', z')
 
-
-
--- X0 v X1 = fixed
--- Y0 v Y1 = fixed
---
--- generates a new table, under the null hypothesis, without replacement. this
--- is appropriate when the number of X0vX1 is fixed, as is Y0vY1. this would not
--- be appropriate, for instance, for testing many hypotheses about drugs, as
--- there is no expectation that the number of people who could be successfully
--- treated for a disease is constant.
---
--- however, for statistics about promotions it is more appropriate, as the
--- number of promotions available is fixed, so it should never be the case that
--- every employee gets promoted, even in an unlikely scenario.
---
--- this might be able to be done analytically with combinatoric functions
---
--- it should be the case that the sums of the rows and columns are the same in
--- the original table and the simulated table
-nullHypothesis_withoutReplacement
-    :: forall m a. (MonadRandom m, Random a, Ord a, Integral a)
-    => Table a -> m (Table a)
-nullHypothesis_withoutReplacement ts = go x0 x1 y0 y1 0
-  where
-    -- randomly pick x value, assign it y1, until all y1s are exhausted
-    -- only works if one x and one y value are non-zero
-    -- it should be impossible for the xs and ys
-    go :: a -> a -> a -> a -> Table a -> m (Table a)
-    go 0 0 0 0 !z = pure z
-    go x0 x1 y0 y1 z = do
-        isX1 <- probability @m @Double (fromIntegral x1 / fromIntegral (x0 + x1))
-        isY1 <- probability @m @Double (fromIntegral y1 / fromIntegral (y0 + y1))
-        case (isX1, isY1) of
-            (True , True ) -> go x0 (x1 - 1) y0 (y1 - 1) (z & x1y1 Lens.+~ 1)
-            (True , False) -> go x0 (x1 - 1) (y0 - 1) y1 (z & x1y0 Lens.+~ 1)
-            (False, True ) -> go (x0 - 1) x1 y0 (y1 - 1) (z & x0y1 Lens.+~ 1)
-            (False, False) -> go (x0 - 1) x1 (y0 - 1) y1 (z & x0y0 Lens.+~ 1)
-    x0, x1, y0, y1 :: a
-    x0 = view x0y0 ts + view x0y1 ts
-    x1 = view x1y0 ts + view x1y1 ts
-    y0 = view x0y0 ts + view x1y0 ts
-    y1 = view x0y1 ts + view x1y1 ts
 
 -- X0 + X1 = fixed
 -- Y0 + Y1 = unfixed
@@ -236,6 +199,16 @@ data Options = Options
     , _freedom    :: Freedom
     }
 
+nullHypothesisN :: forall m. MonadRandom m => Int -> Options -> Table Int -> m Double
+nullHypothesisN n o t = average (Pipes.replicateM n oneSample)
+  where
+    average :: Pipes.Producer Double m () -> m Double
+    average = Foldl.purely Pipes.fold Foldl.mean
+    oneSample :: m Double
+    oneSample = do
+        b <- nullHypothesis o t
+        pure (if b then 1 else 0)
+
 nullHypothesis :: MonadRandom m => Options -> Table Int -> m Bool
 nullHypothesis (Options {..}) t = do
     t' <- simulate t
@@ -252,10 +225,10 @@ nullHypothesis (Options {..}) t = do
         | otherwise = \z z' -> abs z' >= abs z
     simulate = case _freedom of
         BothFree     -> \t -> do
-            t' <- bootStrap t
+            t' <- pure t -- bootStrap t
             observationalTrial (sum t) (pX1 t') (pY1 t')
         ResponseFree -> \t -> do
-            t' <- bootStrap t
+            t' <- pure t -- bootStrap t
             medicalTrial (x0 t) (x1 t) (pY1 t')
         -- i'm not sure if it's possible to bootstrap this, as we need the same
         -- number of data points i thin
