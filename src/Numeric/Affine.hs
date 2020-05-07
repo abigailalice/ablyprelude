@@ -4,7 +4,7 @@ module Numeric.Affine
     ) where
 
 import AblyPrelude
-import Numeric
+import Numeric.Ring
 
 class (Negate (Delta a)) => Affine a where
     type Delta a :: Type

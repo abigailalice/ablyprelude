@@ -1,5 +1,6 @@
 
 {-# LANGUAGE TemplateHaskell, RecordWildCards, OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 module Statistics
@@ -117,16 +118,31 @@ probability x = do
 
 
 
-discreteCDF :: forall k. (Ord k, Num k, Fractional k) => Map k Int -> Map k k
-discreteCDF = uncurry normalize . integrate
+discreteCDF
+    :: forall k. (Ord k, Num k, Fractional k)
+    => [k] -> [(k, k)]
+discreteCDF
+    = Map.toList
+    . uncurry normalize
+    . integrate 
+    . toMap
   where
+    toMap :: (Ord k) => [k] -> Map k Int
+    toMap = Map.fromListWith (+) . fmap (, 1)
+
+    normalize :: (Functor f, Fractional k) => k -> f k -> f k
     normalize z = fmap (/ z)
 
     integrate :: Map k Int -> (k, Map k k)
     integrate = Map.mapAccumWithKey go 0
       where
+        -- it may also be reasonable to return (z', z), which returns the LT
+        -- percentiles rather than LTE. some average of the two may also be
+        -- sensible
         go :: k -> k -> Int -> (k, k)
         go z k v = let z' = z + fromIntegral v * k in (z', z')
+
+
 
 
 -- X0 + X1 = fixed

@@ -1,4 +1,6 @@
 
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
+
 module Data.Bag
     ( Bag(..)
     , occurrences
@@ -8,7 +10,6 @@ module Data.Bag
 
 import AblyPrelude
 import AblyPrelude.Lens
-import AblyPrelude.Data
 import qualified Data.Semigroup as Semigroup
 import qualified Data.Map.Strict as Map
 import GHC.Exts
@@ -24,6 +25,10 @@ instance (Ord k) => IsList (Bag k) where
       where
         u :: k -> (k, Int)
         u x = (x, 1)
+    toList = ifoldr go [] . getBag
+      where
+        go :: k -> Int -> [k] -> [k]
+        go k n = mappend (replicate n k)
 
 -- since this always returns a value, using it with 'has' will always rerurn
 -- true
