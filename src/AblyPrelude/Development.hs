@@ -4,17 +4,27 @@
 module AblyPrelude.Development
     ( module X
     , AblyPrelude.Development.undefined
+    , deadCode
+    , deadCodeOf
+    , notImplemented
     -- , pPrint
     , printAsTable
+
+    , Control.Lens._Show
+    , Prelude.show
     ) where
 
 import qualified Prelude 
+import qualified Control.Lens
 import AblyPrelude
+import AblyPrelude.Monad
 import AblyPrelude.Lens
 
-import qualified Text.Pretty.Simple
-import qualified System.Console.Terminal.Size as Size
+--import qualified Text.Pretty.Simple
+--import qualified System.Console.Terminal.Size as Size
 import Debug.Trace as X
+import qualified GHC.Stack as GS
+import qualified Data.Monoid as DM
 
 import qualified Data.List as List (transpose)
 import qualified Data.Text as Text
@@ -22,6 +32,25 @@ import qualified Data.Text as Text
 {-# WARNING undefined "'undefined' remains in code" #-}
 undefined :: a
 undefined = Prelude.undefined
+
+-- |'deadCode' serves as a signal that a given call to 'error' should never be
+-- called regardless of the inputs of a function where it is used.
+deadCode :: GS.HasCallStack => [Char] -> a
+deadCode = error
+
+deadCodeOf :: (GS.HasCallStack, MonadReader s m)
+    => [Char] -> Getting (DM.First a) s a -> m a
+deadCodeOf msg l = preview l >>= \case
+    Just a -> pure a
+    Nothing -> deadCode msg
+
+{-# WARNING notImplemented "'notImplemented' remains in code" #-}
+notImplemented :: GS.HasCallStack => a
+notImplemented = undefined
+
+_Show :: (Show a, Read a) => Prism' [Char] a
+_Show = AblyPrelude.Lens._Show
+
 
 printAsTable :: [[Text]] -> IO ()
 printAsTable = traverse_ printLn . List.transpose . fmap go . List.transpose

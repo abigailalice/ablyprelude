@@ -33,6 +33,11 @@ head :: (Partial s) => proxy s -> [a] -> a
 head _ (x : _) = x
 head p _ = partial p
 
+-- unsafePreview :: (Partial s) => proxy s -> Getting (First a) s a -> s -> a
+-- unsafePreview p l s = case preview l s of
+--     Just a  -> a
+--     Nothing -> partial p
+
 -- If viewing the type
 --   (Partial s => r) ~ (NonEmpty Text -> r)
 -- then stackFrame is simply
