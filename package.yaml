@@ -40,10 +40,13 @@ dependencies:
 - foldl
 - linear
 - profunctors
+- contravariant
+- semigroupoids
 - aeson
 - vector
 - terminal-size
 - pipes
+- cereal-text
 
 default-extensions:
 - DeriveAnyClass

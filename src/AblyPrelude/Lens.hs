@@ -12,12 +12,13 @@ module AblyPrelude.Lens
     ) where
 
 import Control.Lens as X hiding (set')
-import "generic-lens" Data.Generics.Product.Any as X (HasAny(..))
-import "generic-lens" Data.Generics.Product.Typed as X (HasType(..))
-import "generic-lens" Data.Generics.Product.Types as X (HasTypes)
-import "generic-lens" Data.Generics.Product.Constraints as X (HasConstraints(..), HasConstraints'(..))
-import "generic-lens" Data.Generics.Product.Param as X (HasParam(..))
-import "generic-lens" Data.Generics.Product.Positions as X (HasPosition(..))
+import Data.Generics.Product.Any as X (HasAny(..))
+import Data.Generics.Product.Typed as X (HasType(..))
+import Data.Generics.Product.Types as X (HasTypes)
+import Data.Generics.Labels ()
+-- import "generic-lens" Data.Generics.Product.Constraints as X (HasConstraints(..), HasConstraints'(..))
+import Data.Generics.Product.Param as X (HasParam(..))
+import Data.Generics.Product.Positions as X (HasPosition(..))
 import qualified Control.Monad.Writer as Writer
 import qualified Control.Monad.State as State
 import Data.Text.Lens as X (_Text, IsText)

@@ -1,5 +1,0 @@
-
-module Neural.Supervised
-    (
-    ) where
-

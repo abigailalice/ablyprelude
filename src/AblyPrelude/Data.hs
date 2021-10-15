@@ -9,7 +9,10 @@ module AblyPrelude.Data
     , readFile
     , writeFile
     , IsUTF8(..)
+    , _Serialize
     ) where
+
+import Data.Maybe as X (mapMaybe)
 
 import Prelude hiding (readFile, writeFile)
 
