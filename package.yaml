@@ -83,11 +83,11 @@ default-extensions:
 - ViewPatterns
 - NoImplicitPrelude
 
-ghc-options:
-- -Wall
-
 library:
   source-dirs: src
+  ghc-options:
+  - -Wall
+  - -Werror
 
 tests:
   AblyPrelude-test:

@@ -11,6 +11,8 @@ module Statistics
     , Options(..)
     , printTable
 
+    , discreteCDF
+    , nullHypothesisN
     ) where
 
 import AblyPrelude
