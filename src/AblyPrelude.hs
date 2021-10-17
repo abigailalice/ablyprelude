@@ -14,9 +14,10 @@ module AblyPrelude
     , show
     , pattern (:=>), type (:=>)
     --, type List1
+    , coerceOf
+    , coerceFromOf
     ) where
 
-import Data.Serialize.Text
 
 import qualified Prelude as Prelude
 import qualified Data.Text.Lens as Lens
@@ -26,10 +27,8 @@ import GHC.Generics as X (Generic)
 
 import Data.Functor.Contravariant as X (Contravariant(..))
 import Data.Bifunctor as X (Bifunctor(..))
-import Data.Profunctor as X (Profunctor(..))
 import Data.Semigroup.Foldable as X (Foldable1(..))
 import GHC.Exts as X (IsList)
--- import Data.List.NonEmpty
 import Data.Function as X ((&))
 import Data.Functor.Identity as X (Identity(..))
 import Data.Functor as X ((<&>), ($>))
@@ -67,8 +66,6 @@ import "safe-exceptions" Control.Exception.Safe as X
 import qualified Control.Exception as Exception
 import qualified GHC.Stack as GS
 import GHC.Stack as X (HasCallStack)
-
-import Data.DList
 
 filterMap :: (a -> Maybe b) -> [a] -> [b]
 filterMap _ [] = []
@@ -110,6 +107,8 @@ infixr 9 .#
 _Sum :: Lens.Iso (Sum a) (Sum b) a b
 _Sum = Lens.iso getSum Sum
 
+-- |@'coerceFromOf'@ is simply a slightly nicer replacement for calling
+-- 'coerce', which avoids complex visible type applications or type signatures
 coerceFromOf :: (Coercible a b) => Lens.AnIso' a b -> a -> b
 coerceFromOf _ = coerce
 
