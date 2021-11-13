@@ -15,6 +15,7 @@ module AblyPrelude.Data
     , DA.ToJSON(..)
     , _Aeson
     , _Value
+    , DTL._Text
     ) where
 
 import Data.Maybe as X (mapMaybe)
@@ -35,39 +36,37 @@ import qualified Data.Text.Lazy
 import qualified Data.ByteString
 import qualified Data.ByteString.Lazy
 
-import qualified Control.Lens as Lens
+import qualified Control.Lens as L
 import qualified Data.Text.Strict.Lens
+import qualified Data.Text.Lens as DTL
 import qualified Data.Text.Lazy.Lens
-import qualified Data.Serialize as Serialize
+import qualified Data.Serialize as DS
 
 type LText = Data.Text.Lazy.Text
 type Bytes = Data.ByteString.ByteString
 type LBytes = Data.ByteString.Lazy.ByteString
 
 class IsUTF8 bytes text | bytes -> text , text -> bytes where
-    _UTF8 :: Lens.Prism' bytes text
+    _UTF8 :: L.Prism' bytes text
 instance IsUTF8 LBytes LText where
     _UTF8 = Data.Text.Lazy.Lens.utf8
 instance IsUTF8 Bytes Text where
     _UTF8 = Data.Text.Strict.Lens.utf8
 
-_Serialize :: (Serialize a) => Lens.Prism' Bytes a
-_Serialize = Lens.prism' Serialize.encode (Lens.preview Lens._Right . Serialize.decode)
+_Serialize :: (DS.Serialize a) => L.Prism' Bytes a
+_Serialize = L.prism' DS.encode (L.preview L._Right . DS.decode)
 
-_Aeson :: (DA.FromJSON a, DA.ToJSON a) => Lens.Prism' Bytes a
-_Aeson = Lens.prism' (Data.ByteString.Lazy.toStrict . DA.encode) DA.decodeStrict'
+_Aeson :: (DA.FromJSON a, DA.ToJSON a) => L.Prism' Bytes a
+_Aeson = L.prism' (Data.ByteString.Lazy.toStrict . DA.encode) DA.decodeStrict'
 
-_Value :: forall a. (DA.FromJSON a, DA.ToJSON a) => Lens.Prism' DA.Value a
-_Value = Lens.prism' DA.toJSON (fromResult . DA.fromJSON)
+_Value :: (DA.FromJSON a, DA.ToJSON a) => L.Prism' DA.Value a
+_Value = L.prism' DA.toJSON (fromResult . DA.fromJSON)
   where
     fromResult (DA.Success a) = Just a
     fromResult _ = Nothing
 
 readFile :: (Serialize a) => FilePath -> IO (Maybe a)
-readFile fp = fmap decode (Data.ByteString.readFile fp)
-  where
-    decode :: (Serialize a) => Bytes -> Maybe a
-    decode bytes = Lens.preview Lens._Right (Serialize.decode bytes)
+readFile fp = fmap (L.preview _Serialize) (Data.ByteString.readFile fp)
 
 writeFile :: (Serialize a) => FilePath -> a -> IO ()
-writeFile fp obj = Data.ByteString.writeFile fp (Serialize.encode obj)
+writeFile fp obj = Data.ByteString.writeFile fp (L.review _Serialize obj)

@@ -1,21 +1,20 @@
 
-{-# LANGUAGE PackageImports, PatternSynonyms, TypeOperators #-}
+{-# LANGUAGE PackageImports, PatternSynonyms, TypeOperators, ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds, TypeFamilies, ViewPatterns, FlexibleInstances #-}
+{-# LANGUAGE TypeApplications, AllowAmbiguousTypes #-}
 
 module AblyPrelude
     ( module X
     , fmap_
     , filterMap
     , bind
-    , (.#)
-    , (#.)
+    , nf
     , nfIO
     , whnfIO
     , errorIO
     , show
     , pattern (:=>), type (:=>)
     --, type List1
-    , coerceOf
-    , coerceFromOf
     ) where
 
 
@@ -25,8 +24,11 @@ import qualified Control.Lens as Lens
 
 import GHC.Generics as X (Generic)
 
+import AblyPrelude.Partial as X
+import Control.Monad.IO.Class as X (MonadIO(..))
 import Data.Functor.Contravariant as X (Contravariant(..))
 import Data.Bifunctor as X (Bifunctor(..))
+import Data.Profunctor as X (Profunctor(..))
 import Data.Semigroup.Foldable as X (Foldable1(..))
 import GHC.Exts as X (IsList)
 import Data.Function as X ((&))
@@ -41,7 +43,7 @@ import Data.Text.IO as X (putStr, putStrLn)
 import Data.Void as X (Void, absurd)
 import Control.Applicative as X
 import Control.Monad as X
-import Prelude as X hiding (undefined, putStr, putStrLn, show, String, read)
+import Prelude as X hiding (undefined, putStr, putStrLn, show, String, read, head)
 
 import Data.Kind as X (Type)
 import Control.DeepSeq as X (NFData(..), force, deepseq)
@@ -67,11 +69,13 @@ import qualified Control.Exception as Exception
 import qualified GHC.Stack as GS
 import GHC.Stack as X (HasCallStack)
 
-filterMap :: (a -> Maybe b) -> [a] -> [b]
-filterMap _ [] = []
-filterMap f (x : xs) = case f x of
-    Just x' -> x' : filterMap f xs
-    Nothing -> filterMap f xs
+filterMap :: forall a b. (a -> Maybe b) -> [a] -> [b]
+filterMap f = foldr go []
+  where
+    go :: a -> [b] -> [b]
+    go x ys = case f x of
+        Just y -> y : ys
+        Nothing -> ys
 
 type (:=>) a b = (a, b)
 pattern (:=>) :: a -> b -> (a, b)
@@ -88,36 +92,13 @@ bind = (=<<)
 show :: (Show a, Lens.IsText b) => a -> b
 show = Lens.view Lens.packed . Prelude.show
 
-
--- type List1 a = NonEmpty a
-
-
--- trace
-
-infixr 9 #.
-{-# INLINE (#.) #-}
-(#.) :: (X.Coercible b c) => (b -> c) -> (a -> b) -> a -> c
-(#.) _ = X.coerce
-
-infixr 9 .#
-{-# INLINE (.#) #-}
-(.#) :: (X.Coercible a b) => (b -> c) -> (a -> b) -> (a -> c)
-(.#) f _ = X.coerce f
-
-_Sum :: Lens.Iso (Sum a) (Sum b) a b
-_Sum = Lens.iso getSum Sum
-
--- |@'coerceFromOf'@ is simply a slightly nicer replacement for calling
--- 'coerce', which avoids complex visible type applications or type signatures
-coerceFromOf :: (Coercible a b) => Lens.AnIso' a b -> a -> b
-coerceFromOf _ = coerce
-
-coerceOf :: (X.Coercible a b) => Lens.AnIso' a b -> b -> a
-coerceOf _ = coerce
-
 {-# INLINE nfIO #-}
 nfIO :: (X.NFData a) => a -> IO a
 nfIO = Exception.evaluate . X.force
+
+{-# INLINE nf #-}
+nf :: (X.NFData a) => a -> a
+nf = X.force
 
 {-# INLINE whnfIO #-}
 whnfIO :: a -> IO a
@@ -125,5 +106,5 @@ whnfIO = Exception.evaluate
 
 {-# INLINE errorIO #-}
 errorIO :: GS.HasCallStack => [Char] -> IO a
-errorIO = whnfIO . error
+errorIO = liftIO . whnfIO . error
 
