@@ -24,6 +24,8 @@ import qualified Control.Lens as Lens
 
 import GHC.Generics as X (Generic)
 
+import Data.Ord as X (comparing)
+
 import AblyPrelude.Partial as X
 import Control.Monad.IO.Class as X (MonadIO(..))
 import Data.Functor.Contravariant as X (Contravariant(..))
@@ -35,7 +37,7 @@ import Data.Function as X ((&))
 import Data.Functor.Identity as X (Identity(..))
 import Data.Functor as X ((<&>), ($>))
 import Data.Foldable as X
-import Data.Maybe as X (isJust)
+import Data.Maybe as X (fromMaybe)
 import Data.Monoid as X
 import Data.String as X (IsString(..))
 import Data.Text as X (Text)
@@ -43,7 +45,18 @@ import Data.Text.IO as X (putStr, putStrLn)
 import Data.Void as X (Void, absurd)
 import Control.Applicative as X
 import Control.Monad as X
-import Prelude as X hiding (undefined, putStr, putStrLn, show, String, read, head)
+import Prelude as X hiding
+    ( undefined
+    , putStr
+    , putStrLn
+    , show
+    , String
+    , read
+    , head
+    , span
+    , lex
+    , lookup
+    )
 
 import Data.Kind as X (Type)
 import Control.DeepSeq as X (NFData(..), force, deepseq)
@@ -68,6 +81,8 @@ import "safe-exceptions" Control.Exception.Safe as X
 import qualified Control.Exception as Exception
 import qualified GHC.Stack as GS
 import GHC.Stack as X (HasCallStack)
+
+import AblyPrelude.Development as X
 
 filterMap :: forall a b. (a -> Maybe b) -> [a] -> [b]
 filterMap f = foldr go []

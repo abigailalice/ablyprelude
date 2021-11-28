@@ -23,6 +23,7 @@ dependencies:
 - base >= 4.7 && < 5
 - lens
 - time
+- transformers
 - pretty-simple
 - containers
 - text
@@ -47,6 +48,8 @@ dependencies:
 - terminal-size
 - pipes
 - cereal-text
+- pretty-show
+- directory
 
 default-extensions:
 - DeriveAnyClass

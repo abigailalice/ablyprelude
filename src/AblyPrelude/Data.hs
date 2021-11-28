@@ -18,6 +18,7 @@ module AblyPrelude.Data
     , DTL._Text
     ) where
 
+import Control.Lens (view)
 import Data.Maybe as X (mapMaybe)
 
 import Prelude hiding (readFile, writeFile)
@@ -25,6 +26,7 @@ import Prelude hiding (readFile, writeFile)
 import qualified Data.Aeson as DA
 import           Data.Serialize as X (Serialize)
 import           Data.DList as X (DList)
+import           Data.List.NonEmpty as X (NonEmpty)
 import           Data.HashSet as X (HashSet)
 import           Data.HashMap.Strict as X (HashMap)
 import           Data.IntMap as X (IntMap)
@@ -41,6 +43,9 @@ import qualified Data.Text.Strict.Lens
 import qualified Data.Text.Lens as DTL
 import qualified Data.Text.Lazy.Lens
 import qualified Data.Serialize as DS
+
+import qualified System.FilePath.Lens as SFL
+import qualified System.Directory as SD
 
 type LText = Data.Text.Lazy.Text
 type Bytes = Data.ByteString.ByteString
@@ -69,4 +74,6 @@ readFile :: (Serialize a) => FilePath -> IO (Maybe a)
 readFile fp = fmap (L.preview _Serialize) (Data.ByteString.readFile fp)
 
 writeFile :: (Serialize a) => FilePath -> a -> IO ()
-writeFile fp obj = Data.ByteString.writeFile fp (L.review _Serialize obj)
+writeFile fp obj = do
+    SD.createDirectoryIfMissing True (view SFL.directory fp)
+    Data.ByteString.writeFile fp (L.review _Serialize obj)

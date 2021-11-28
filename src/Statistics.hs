@@ -9,7 +9,7 @@ module Statistics
     , nullHypothesis
     , Freedom(..)
     , Options(..)
-    , printTable
+    -- , printTable
 
     , discreteCDF
     , nullHypothesisN
@@ -25,7 +25,7 @@ import qualified Data.Map as Map
 import qualified Pipes.Prelude as Pipes
 import qualified Pipes
 import qualified Control.Foldl as Foldl
-import qualified AblyPrelude.Development as Development
+-- import qualified AblyPrelude.Development as Development
 
 -- x-axis = control vs. intervention = x-axis
 -- y-axis = outcome
@@ -71,18 +71,18 @@ zScore t =
         y1GivenX1 = fromIntegral (_x1y1 t) / fromIntegral (x1 t)
     in y1GivenX1 - y1GivenX0
 
-printTable :: forall a. (Show a, Num a) => Table a -> IO ()
-printTable
-    = Development.printAsTable
-    . toLists
-  where
-    -- sequenceOf (traverse . traverse) :: [[b -> a]] -> b -> [[a]]
-    toLists :: (Show a) => Table a -> [[Text]]
-    toLists t =
-        [ [""  , "Y0"   , "Y1"   , ""   ]
-        , ["X0", show $ _x0y0 t, show $ _x0y1 t, show $ x0 t ]
-        , ["X1", show $ _x1y0 t, show $ _x1y1 t, show $ x1 t ]
-        , [""  , show $ y0 t   , show $ y1 t, show $ sum t]]
+-- printTable :: forall a. (Show a, Num a) => Table a -> IO ()
+-- printTable
+--     = Development.printAsTable
+--     . toLists
+--   where
+--     -- sequenceOf (traverse . traverse) :: [[b -> a]] -> b -> [[a]]
+--     toLists :: (Show a) => Table a -> [[Text]]
+--     toLists t =
+--         [ [""  , "Y0"   , "Y1"   , ""   ]
+--         , ["X0", show $ _x0y0 t, show $ _x0y1 t, show $ x0 t ]
+--         , ["X1", show $ _x1y0 t, show $ _x1y1 t, show $ x1 t ]
+--         , [""  , show $ y0 t   , show $ y1 t, show $ sum t]]
 
 
 -- this could be done analytically with combinatoric functions, like

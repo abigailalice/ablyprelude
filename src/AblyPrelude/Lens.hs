@@ -63,7 +63,6 @@ observe l = State.state (l (\x -> (x, x)))
 _Read :: (Show a, Read a, IsText t) => Prism' t a
 _Read = _Text . _Show
 
-
 -- * Wrapped isomorphisms
 _Sum :: X.Iso (Sum a) (Sum b) a b
 _Sum = X.coerced
