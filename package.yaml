@@ -50,6 +50,7 @@ dependencies:
 - cereal-text
 - pretty-show
 - directory
+- blaze-html
 
 default-extensions:
 - DeriveAnyClass

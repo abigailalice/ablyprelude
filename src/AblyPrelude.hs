@@ -14,6 +14,7 @@ module AblyPrelude
     , errorIO
     , show
     , pattern (:=>), type (:=>)
+    , shuffle
     --, type List1
     ) where
 
@@ -25,6 +26,7 @@ import qualified Control.Lens as Lens
 import GHC.Generics as X (Generic)
 
 import Data.Ord as X (comparing)
+import qualified Data.List as DL
 
 import AblyPrelude.Partial as X
 import Control.Monad.IO.Class as X (MonadIO(..))
@@ -81,8 +83,17 @@ import "safe-exceptions" Control.Exception.Safe as X
 import qualified Control.Exception as Exception
 import qualified GHC.Stack as GS
 import GHC.Stack as X (HasCallStack)
+import qualified System.Random as SR
 
 import AblyPrelude.Development as X
+
+shuffle :: forall a. [a] -> IO [a]
+shuffle = fmap (fmap snd . DL.sortOn fst) . traverse go
+  where
+    go :: a -> IO (Double, a)
+    go m = do
+        n <- SR.randomIO
+        pure (n, m)
 
 filterMap :: forall a b. (a -> Maybe b) -> [a] -> [b]
 filterMap f = foldr go []
