@@ -87,8 +87,8 @@ import qualified System.Random as SR
 
 import AblyPrelude.Development as X
 
-shuffle :: forall a. [a] -> IO [a]
-shuffle = fmap (fmap snd . DL.sortOn fst) . traverse go
+shuffle :: forall a m. (MonadIO m) => [a] -> m [a]
+shuffle = liftIO . fmap (fmap snd . DL.sortOn fst) . traverse go
   where
     go :: a -> IO (Double, a)
     go m = do
@@ -119,18 +119,18 @@ show :: (Show a, Lens.IsText b) => a -> b
 show = Lens.view Lens.packed . Prelude.show
 
 {-# INLINE nfIO #-}
-nfIO :: (X.NFData a) => a -> IO a
-nfIO = Exception.evaluate . X.force
+nfIO :: (X.NFData a, MonadIO m) => a -> m a
+nfIO = liftIO . Exception.evaluate . X.force
 
 {-# INLINE nf #-}
 nf :: (X.NFData a) => a -> a
 nf = X.force
 
 {-# INLINE whnfIO #-}
-whnfIO :: a -> IO a
-whnfIO = Exception.evaluate
+whnfIO :: MonadIO m => a -> m a
+whnfIO = liftIO . Exception.evaluate
 
 {-# INLINE errorIO #-}
-errorIO :: GS.HasCallStack => [Char] -> IO a
+errorIO :: (GS.HasCallStack, MonadIO m) => [Char] -> m a
 errorIO = liftIO . whnfIO . error
 
