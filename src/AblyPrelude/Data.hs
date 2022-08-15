@@ -16,7 +16,7 @@ module AblyPrelude.Data
     , _Aeson
     , _Value
     , DTL._Text
-    , groupBy
+    , groupOn
     ) where
 
 import Control.Lens (view)
@@ -42,6 +42,8 @@ import qualified Data.ByteString
 import qualified Data.ByteString.Lazy
 
 import qualified Control.Lens as L
+import qualified Data.Function as DF
+import qualified Data.List as DL
 import qualified Data.Map as DM
 import qualified Data.Text.Strict.Lens
 import qualified Data.Text.Lens as DTL
@@ -82,8 +84,5 @@ writeFile fp obj = do
     SD.createDirectoryIfMissing True (view SFL.directory fp)
     Data.ByteString.writeFile fp (L.review _Serialize obj)
 
-groupBy :: forall a b. (Ord b) => (a -> b) -> [a] -> Map b [a]
-groupBy f xs =
-    let xs' :: [(b,DList a)]
-        xs' = xs & fmap \x -> (f x, pure x)
-    in xs' & DM.fromListWith (<>) & fmap toList
+groupOn :: forall a b. (Ord b) => (a -> b) -> [a] -> [[a]]
+groupOn f = DL.groupBy ((==) `DF.on` f) . DL.sortBy (compare `DF.on` f)
