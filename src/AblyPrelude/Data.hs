@@ -16,12 +16,15 @@ module AblyPrelude.Data
     , _Aeson
     , _Value
     , DTL._Text
+    , groupBy
     ) where
 
 import Control.Lens (view)
 import Data.Maybe as X (mapMaybe)
 
 import Prelude hiding (readFile, writeFile)
+import Data.Function ((&))
+import Data.Foldable (toList)
 
 import qualified Data.Aeson as DA
 import           Data.Serialize as X (Serialize)
@@ -39,6 +42,7 @@ import qualified Data.ByteString
 import qualified Data.ByteString.Lazy
 
 import qualified Control.Lens as L
+import qualified Data.Map as DM
 import qualified Data.Text.Strict.Lens
 import qualified Data.Text.Lens as DTL
 import qualified Data.Text.Lazy.Lens
@@ -77,3 +81,9 @@ writeFile :: (Serialize a) => FilePath -> a -> IO ()
 writeFile fp obj = do
     SD.createDirectoryIfMissing True (view SFL.directory fp)
     Data.ByteString.writeFile fp (L.review _Serialize obj)
+
+groupBy :: forall a b. (Ord b) => (a -> b) -> [a] -> Map b [a]
+groupBy f xs =
+    let xs' :: [(b,DList a)]
+        xs' = xs & fmap \x -> (f x, pure x)
+    in xs' & DM.fromListWith (<>) & fmap toList
