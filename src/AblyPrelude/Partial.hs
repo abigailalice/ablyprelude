@@ -86,4 +86,4 @@ fromJust _ (Just x) = x
 fromJust p _ = partial p
 
 runPartial :: GS.HasCallStack => String -> (forall s. (Partial s) => Proxy s -> r) -> r
-runPartial msg = Reflection.reify (PartialException GS.callStack msg)
+runPartial msg r = Reflection.reify (PartialException GS.callStack msg) r

@@ -24,6 +24,7 @@ import qualified Data.Text.Lens as Lens
 import qualified Control.Lens as Lens
 
 import GHC.Generics as X (Generic)
+import Data.Typeable as X (Typeable)
 
 import Data.Ord as X (comparing)
 import qualified Data.List as DL

@@ -17,14 +17,14 @@ module AblyPrelude.Data
     , _Value
     , DTL._Text
     , groupOn
+    , groupOn'
     ) where
 
 import Control.Lens (view)
 import Data.Maybe as X (mapMaybe)
 
 import Prelude hiding (readFile, writeFile)
-import Data.Function ((&))
-import Data.Foldable (toList)
+import Data.Function
 
 import qualified Data.Aeson as DA
 import           Data.Serialize as X (Serialize)
@@ -44,14 +44,15 @@ import qualified Data.ByteString.Lazy
 import qualified Control.Lens as L
 import qualified Data.Function as DF
 import qualified Data.List as DL
-import qualified Data.Map as DM
 import qualified Data.Text.Strict.Lens
+import qualified Data.Map as DM
 import qualified Data.Text.Lens as DTL
 import qualified Data.Text.Lazy.Lens
 import qualified Data.Serialize as DS
 
 import qualified System.FilePath.Lens as SFL
 import qualified System.Directory as SD
+import Data.Foldable
 
 type LText = Data.Text.Lazy.Text
 type Bytes = Data.ByteString.ByteString
@@ -86,3 +87,10 @@ writeFile fp obj = do
 
 groupOn :: forall a b. (Ord b) => (a -> b) -> [a] -> [[a]]
 groupOn f = DL.groupBy ((==) `DF.on` f) . DL.sortBy (compare `DF.on` f)
+
+groupOn' :: forall a b. (Ord b) => (a -> b) -> [a] -> Map b [a]
+groupOn' f xs = xs
+    & fmap (\x -> (f x, pure x))
+    & DM.fromListWith (<>)
+    & fmap (toList @DList)
+
