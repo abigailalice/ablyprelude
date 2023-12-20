@@ -9,6 +9,12 @@ module AblyPrelude.Development
     , pPrint
     , pPrintHtml
     , pPrintJson
+    , pShowJson
+    , pTraceJson
+    , GS.HasCallStack
+    , GS.callStack
+    , GS.prettyCallStack
+    , embedFile
     ) where
 
 import Prelude hiding (undefined)
@@ -24,6 +30,14 @@ import qualified Text.Blaze.Html.Renderer.String as TBHRS
 
 import qualified Data.ByteString.Lazy.Char8 as DBLC
 import qualified Data.Aeson.Encode.Pretty as DAEP
+
+import qualified Language.Haskell.TH.Syntax as LHTS
+import qualified Data.FileEmbed as DF
+
+embedFile :: [Char] -> LHTS.Q LHTS.Exp
+embedFile x = do
+    LHTS.addDependentFile x
+    DF.embedStringFile x
 
 {-# WARNING undefined "'undefined' remains in code" #-}
 undefined :: GS.HasCallStack => a
@@ -43,4 +57,10 @@ pPrintHtml = Prelude.putStrLn . TBHRS.renderHtml . TBH.toHtml
 
 pPrintJson :: DA.ToJSON a => a -> IO ()
 pPrintJson = DBLC.putStrLn . DAEP.encodePretty
+
+pShowJson :: DA.ToJSON a => a -> String
+pShowJson = DBLC.unpack . DAEP.encodePretty
+
+pTraceJson :: DA.ToJSON a => a -> a
+pTraceJson x = trace (pShowJson x) x
 

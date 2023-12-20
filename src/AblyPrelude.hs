@@ -1,7 +1,7 @@
 
 {-# LANGUAGE PackageImports, PatternSynonyms, TypeOperators, ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds, TypeFamilies, ViewPatterns, FlexibleInstances #-}
-{-# LANGUAGE TypeApplications, AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications, AllowAmbiguousTypes, ConstraintKinds #-}
 
 module AblyPrelude
     ( module X
@@ -15,9 +15,9 @@ module AblyPrelude
     , show
     , pattern (:=>), type (:=>)
     , shuffle
+    , type HasField'
     --, type List1
     ) where
-
 
 import qualified Prelude as Prelude
 import qualified Data.Text.Lens as Lens
@@ -30,8 +30,11 @@ import Data.Ord as X (comparing)
 import qualified Data.List as DL
 
 import AblyPrelude.Partial as X
-import Control.Monad.IO.Class as X (MonadIO(..))
-import Data.Functor.Contravariant as X (Contravariant(..))
+import AblyPrelude.Data as X hiding (readFile, writeFile)
+import AblyPrelude.Monad as X
+
+-- import Control.Monad.IO.Class as X (MonadIO(..))
+import Data.Functor.Contravariant as X (Contravariant(..), (>$<))
 import Data.Bifunctor as X (Bifunctor(..))
 import Data.Profunctor as X (Profunctor(..))
 import Data.Semigroup.Foldable as X (Foldable1(..))
@@ -40,14 +43,14 @@ import Data.Function as X ((&))
 import Data.Functor.Identity as X (Identity(..))
 import Data.Functor as X ((<&>), ($>))
 import Data.Foldable as X
-import Data.Maybe as X (fromMaybe)
+import Data.Maybe as X (fromMaybe, isJust, isNothing)
 import Data.Monoid as X
 import Data.String as X (IsString(..))
-import Data.Text as X (Text)
+-- import Data.Text as X (Text)
 import Data.Text.IO as X (putStr, putStrLn)
 import Data.Void as X (Void, absurd)
 import Control.Applicative as X
-import Control.Monad as X
+-- import Control.Monad as X
 import Prelude as X hiding
     ( undefined
     , putStr
@@ -60,6 +63,9 @@ import Prelude as X hiding
     , lex
     , lookup
     )
+import GHC.Int as X (Int32, Int64)
+import Data.Bifoldable as X
+import Data.Bitraversable as X
 
 import Data.Kind as X (Type)
 import Control.DeepSeq as X (NFData(..), force, deepseq)
@@ -67,7 +73,9 @@ import Data.Coerce as X (Coercible, coerce)
 import Data.Proxy as X (Proxy(..))
 import System.IO.Unsafe as X (unsafePerformIO)
 
-import Data.Generics.Product.Fields as X (HasField, HasField')
+import Data.Generics.Product.Fields as X (HasField)
+import qualified Data.Generics.Product.Fields as DGPF
+import qualified GHC.Records as GR
 
 import "safe-exceptions" Control.Exception.Safe as X
     ( MonadThrow
@@ -83,10 +91,11 @@ import "safe-exceptions" Control.Exception.Safe as X
     , finally )
 import qualified Control.Exception as Exception
 import qualified GHC.Stack as GS
-import GHC.Stack as X (HasCallStack)
 import qualified System.Random as SR
 
 import AblyPrelude.Development as X
+
+type HasField' l s a = (DGPF.HasField' l s a, GR.HasField l s a)
 
 shuffle :: forall a m. (MonadIO m) => [a] -> m [a]
 shuffle = liftIO . fmap (fmap snd . DL.sortOn fst) . traverse go

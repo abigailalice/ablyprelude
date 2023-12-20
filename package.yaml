@@ -52,6 +52,8 @@ dependencies:
 - pretty-show
 - directory
 - blaze-html
+- file-embed
+- template-haskell
 
 default-extensions:
 - DeriveAnyClass

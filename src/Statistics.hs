@@ -16,10 +16,10 @@ module Statistics
     ) where
 
 import AblyPrelude
-import AblyPrelude.Monad
+-- import AblyPrelude.Monad
 import AblyPrelude.Lens
 import qualified Control.Lens as Lens
-import AblyPrelude.Data
+-- import AblyPrelude.Data
 import qualified Data.Map as Map
 
 import qualified Pipes.Prelude as Pipes

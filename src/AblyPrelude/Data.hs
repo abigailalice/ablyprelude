@@ -53,6 +53,7 @@ import qualified Data.Serialize as DS
 import qualified System.FilePath.Lens as SFL
 import qualified System.Directory as SD
 import Data.Foldable
+import Data.Ord as X (Down(..))
 
 type LText = Data.Text.Lazy.Text
 type Bytes = Data.ByteString.ByteString
