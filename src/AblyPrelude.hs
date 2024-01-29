@@ -30,8 +30,10 @@ import Data.Ord as X (comparing)
 import qualified Data.List as DL
 
 import AblyPrelude.Partial as X
-import AblyPrelude.Data as X hiding (readFile, writeFile)
+import AblyPrelude.Data as X hiding (readFile, writeFile, mapMaybe)
 import AblyPrelude.Monad as X
+import Witherable as X
+import Data.These as X
 
 -- import Control.Monad.IO.Class as X (MonadIO(..))
 import Data.Functor.Contravariant as X (Contravariant(..), (>$<))
@@ -60,6 +62,7 @@ import Prelude as X hiding
     , read
     , head
     , span
+    , filter
     , lex
     , lookup
     )

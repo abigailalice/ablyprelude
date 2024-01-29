@@ -54,6 +54,8 @@ dependencies:
 - blaze-html
 - file-embed
 - template-haskell
+- these
+- witherable
 
 default-extensions:
 - DeriveAnyClass
