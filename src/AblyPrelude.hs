@@ -17,6 +17,8 @@ module AblyPrelude
     , shuffle
     , type HasField'
     --, type List1
+    , here
+    , there
     ) where
 
 import qualified Prelude as Prelude
@@ -97,6 +99,17 @@ import qualified GHC.Stack as GS
 import qualified System.Random as SR
 
 import AblyPrelude.Development as X
+import Control.Lens
+
+here :: Traversal (These a b) (These a' b) a a'
+here f (This x) = This <$> f x
+here f (These x y) = flip These y <$> f x
+here _ (That y) = pure (That y)
+
+there :: Traversal (These a b) (These a b') b b'
+there _ (This x) = pure (This x)
+there f (These x y) = These x <$> f y
+there f (That y) = That <$> f y
 
 type HasField' l s a = (DGPF.HasField' l s a, GR.HasField l s a)
 
