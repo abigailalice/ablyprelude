@@ -11,6 +11,7 @@ module AblyPrelude.Development
     , pPrintJson
     , pShowJson
     , pTraceJson
+    , pTraceJsonM
     , GS.HasCallStack
     , GS.callStack
     , GS.prettyCallStack
@@ -63,4 +64,7 @@ pShowJson = DBLC.unpack . DAEP.encodePretty
 
 pTraceJson :: DA.ToJSON a => a -> a
 pTraceJson x = trace (pShowJson x) x
+
+pTraceJsonM :: Applicative m => DA.ToJSON a => a -> m ()
+pTraceJsonM = traceM . pShowJson
 
