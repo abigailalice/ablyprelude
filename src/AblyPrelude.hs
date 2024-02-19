@@ -19,6 +19,7 @@ module AblyPrelude
     --, type List1
     , here
     , there
+    , (<&&>)
     ) where
 
 import qualified Prelude as Prelude
@@ -100,6 +101,9 @@ import qualified System.Random as SR
 
 import AblyPrelude.Development as X
 import Control.Lens
+
+(<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
+(<&&>) = flip (fmap . fmap)
 
 here :: Traversal (These a b) (These a' b) a a'
 here f (This x) = This <$> f x
