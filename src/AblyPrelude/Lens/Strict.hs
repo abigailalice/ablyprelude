@@ -27,7 +27,6 @@ import Data.Monoid
 import Control.DeepSeq
 import "base" Data.Coerce
 import "base" Prelude
-import "base" Control.Applicative
 import "mtl" Control.Monad.State
 import "lens" Control.Lens hiding (set')
 
@@ -66,7 +65,7 @@ instance (Functor f) => Functor (Strictly f) where
     fmap f (Strictly x) = Strictly (fmap (f $!) x)
 instance (Applicative f) => Applicative (Strictly f) where
     pure x = Strictly (pure x)
-    Strictly x <*> Strictly y = Strictly (liftA2 ($!) x y)
+    Strictly x <*> Strictly y = Strictly (($!) <$> x <*> y)
 
 -- |@'strictly'@ makes an optic strict over its returned value
 {-# INLINE strictly #-}

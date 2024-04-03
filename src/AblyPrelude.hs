@@ -32,7 +32,6 @@ import Data.Typeable as X (Typeable)
 import Data.Ord as X (comparing)
 import qualified Data.List as DL
 
-import AblyPrelude.Partial as X
 import AblyPrelude.Data as X hiding (readFile, writeFile, mapMaybe)
 import AblyPrelude.Monad as X
 import Witherable as X
