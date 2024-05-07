@@ -15,6 +15,7 @@ module AblyPrelude
     , show
     , pattern (:=>), type (:=>)
     , shuffle
+    , shuffle1
     , type HasField'
     --, type List1
     , here
@@ -31,6 +32,7 @@ import Data.Typeable as X (Typeable)
 
 import Data.Ord as X (comparing)
 import qualified Data.List as DL
+import qualified Data.List.NonEmpty as DLN
 
 import AblyPrelude.Data as X hiding (readFile, writeFile, mapMaybe)
 import AblyPrelude.Monad as X
@@ -118,6 +120,14 @@ type HasField' l s a = (DGPF.HasField' l s a, GR.HasField l s a)
 
 shuffle :: forall a m. (MonadIO m) => [a] -> m [a]
 shuffle = liftIO . fmap (fmap snd . DL.sortOn fst) . traverse go
+  where
+    go :: a -> IO (Double, a)
+    go m = do
+        n <- SR.randomIO
+        pure (n, m)
+
+shuffle1 :: forall a m. MonadIO m => DLN.NonEmpty a -> m (DLN.NonEmpty a)
+shuffle1 = liftIO . fmap (fmap snd . DLN.sortWith fst) . traverse go
   where
     go :: a -> IO (Double, a)
     go m = do
