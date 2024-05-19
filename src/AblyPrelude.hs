@@ -21,11 +21,15 @@ module AblyPrelude
     , here
     , there
     , (<&&>)
+    , sequenceOf
+    , act
+    , acts
     ) where
 
 import qualified Prelude as Prelude
 import qualified Data.Text.Lens as Lens
 import qualified Control.Lens as Lens
+
 
 import GHC.Generics as X (Generic)
 import Data.Typeable as X (Typeable)
@@ -40,14 +44,11 @@ import Witherable as X
 import Data.These as X
 
 -- import Control.Monad.IO.Class as X (MonadIO(..))
-import Data.Functor.Contravariant as X (Contravariant(..), (>$<))
+import Data.Functor.Contravariant as X ((>$<))
 import Data.Bifunctor as X (Bifunctor(..))
-import Data.Profunctor as X (Profunctor(..))
 import Data.Semigroup.Foldable as X (Foldable1(..))
 import GHC.Exts as X (IsList)
-import Data.Function as X ((&))
-import Data.Functor.Identity as X (Identity(..))
-import Data.Functor as X ((<&>), ($>))
+import Data.Functor as X (($>))
 import Data.Foldable as X
 import Data.Maybe as X (fromMaybe, isJust, isNothing)
 import Data.Monoid as X
@@ -101,7 +102,17 @@ import qualified GHC.Stack as GS
 import qualified System.Random as SR
 
 import AblyPrelude.Development as X
-import Control.Lens
+import Control.Lens hiding (sequenceOf)
+import Control.Lens as X hiding (sequenceOf)
+
+act :: Monad m => Monad m => (s -> m a) -> LensLike m s t a t
+act g f = g >=> f
+
+acts :: Monad m => LensLike m (m a) t a t
+acts = act id
+
+sequenceOf :: Applicative m => LensLike m s t (m a) a -> s -> m t
+sequenceOf l = l id
 
 (<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
 (<&&>) = flip (fmap . fmap)

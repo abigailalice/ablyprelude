@@ -23,7 +23,6 @@ module Neural.Strategy
     ) where
 
 import AblyPrelude hiding ((.), id)
-import AblyPrelude.Lens
 
 
 import Control.Foldl as Fold hiding (std)
