@@ -22,8 +22,8 @@ module AblyPrelude
     , there
     , (<&&>)
     , sequenceOf
-    , act
-    , acts
+    , bound
+    , joined
     ) where
 
 import qualified Prelude as Prelude
@@ -105,11 +105,11 @@ import AblyPrelude.Development as X
 import Control.Lens hiding (sequenceOf)
 import Control.Lens as X hiding (sequenceOf)
 
-act :: Monad m => Monad m => (s -> m a) -> LensLike m s t a t
-act g f = g >=> f
+bound :: Monad m => Monad m => (s -> m a) -> LensLike m s t a t
+bound g f = g >=> f
 
-acts :: Monad m => LensLike m (m a) t a t
-acts = act id
+joined :: Monad m => LensLike m (m a) t a t
+joined = bound id
 
 sequenceOf :: Applicative m => LensLike m s t (m a) a -> s -> m t
 sequenceOf l = l id
