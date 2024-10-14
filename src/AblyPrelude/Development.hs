@@ -7,7 +7,11 @@ module AblyPrelude.Development
     , deadCode
     , notImplemented
     , pPrint
+
     , pPrintHtml
+    , pTraceHtml
+    , pShowHtml
+
     , pPrintJson
     , pShowJson
     , pTraceJson
@@ -55,6 +59,12 @@ notImplemented = Prelude.undefined
 
 pPrintHtml :: TBH.ToMarkup a => a -> IO ()
 pPrintHtml = Prelude.putStrLn . TBHRS.renderHtml . TBH.toHtml
+
+pShowHtml :: TBH.ToMarkup a => a -> [Char]
+pShowHtml = TBHRS.renderHtml . TBH.toHtml
+
+pTraceHtml :: (Monad m) => TBH.ToMarkup a => a -> m ()
+pTraceHtml = traceM . TBHRS.renderHtml . TBH.toHtml
 
 pPrintJson :: DA.ToJSON a => a -> IO ()
 pPrintJson = DBLC.putStrLn . DAEP.encodePretty
