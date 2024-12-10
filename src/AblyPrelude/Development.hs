@@ -4,6 +4,7 @@
 module AblyPrelude.Development
     ( module X
     , undefined
+    , traceM
     , deadCode
     , notImplemented
     , pPrint
@@ -25,8 +26,10 @@ module AblyPrelude.Development
 import Prelude hiding (undefined)
 import qualified Prelude 
 
-import Debug.Trace as X
+import Debug.Trace as X hiding (traceM)
+import qualified Debug.Trace as DT
 import qualified Data.Aeson as DA
+import qualified Data.Text as DT
 import qualified GHC.Stack as GS
 
 import Text.Show.Pretty (pPrint)
@@ -57,6 +60,11 @@ deadCode = error
 notImplemented :: GS.HasCallStack => a
 notImplemented = Prelude.undefined
 
+traceM :: (Applicative m, GS.HasCallStack) => DT.Text -> m ()
+traceM msg = DT.traceM (GS.prettyCallStack (pop GS.callStack) <> "\n" <> DT.unpack msg)
+  where
+    pop = GS.fromCallSiteList . drop 1 . GS.getCallStack
+
 pPrintHtml :: TBH.ToMarkup a => a -> IO ()
 pPrintHtml = Prelude.putStrLn . TBHRS.renderHtml . TBH.toHtml
 
@@ -64,16 +72,16 @@ pShowHtml :: TBH.ToMarkup a => a -> [Char]
 pShowHtml = TBHRS.renderHtml . TBH.toHtml
 
 pTraceHtml :: (Monad m) => TBH.ToMarkup a => a -> m ()
-pTraceHtml = traceM . TBHRS.renderHtml . TBH.toHtml
+pTraceHtml = traceM . DT.pack . TBHRS.renderHtml . TBH.toHtml
 
 pPrintJson :: DA.ToJSON a => a -> IO ()
 pPrintJson = DBLC.putStrLn . DAEP.encodePretty
 
-pShowJson :: DA.ToJSON a => a -> String
-pShowJson = DBLC.unpack . DAEP.encodePretty
+pShowJson :: DA.ToJSON a => a -> DT.Text
+pShowJson = DT.pack . DBLC.unpack . DAEP.encodePretty
 
 pTraceJson :: DA.ToJSON a => a -> a
-pTraceJson x = trace (pShowJson x) x
+pTraceJson x = trace (DT.unpack $ pShowJson x) x
 
 pTraceJsonM :: Applicative m => DA.ToJSON a => a -> m ()
 pTraceJsonM = traceM . pShowJson
