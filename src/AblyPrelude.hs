@@ -54,6 +54,7 @@ import Data.Maybe as X (fromMaybe, isJust, isNothing)
 import Data.Monoid as X
 import Data.String as X (IsString(..))
 -- import Data.Text as X (Text)
+import qualified Data.Text as DT
 import Data.Text.IO as X (putStr, putStrLn)
 import Data.Void as X (Void, absurd)
 import Control.Applicative as X
@@ -104,6 +105,8 @@ import qualified System.Random as SR
 import AblyPrelude.Development as X
 import Control.Lens hiding (sequenceOf)
 import Control.Lens as X hiding (sequenceOf)
+
+
 
 bound :: Monad m => Monad m => (s -> m a) -> LensLike m s t a t
 bound g f = g >=> f
@@ -183,4 +186,7 @@ whnfIO = liftIO . Exception.evaluate
 {-# INLINE errorIO #-}
 errorIO :: (GS.HasCallStack, MonadIO m) => [Char] -> m a
 errorIO = liftIO . whnfIO . error
+
+intercalateOf :: Text -> Fold s Text -> s -> Text
+intercalateOf sep l s = DT.intercalate sep $ toListOf l s
 
