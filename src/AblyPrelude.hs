@@ -5,6 +5,7 @@
 
 module AblyPrelude
     ( module X
+    , shuffleOf
     , fmap_
     , filterMap
     , bind
@@ -18,6 +19,7 @@ module AblyPrelude
     , shuffle1
     , type HasField'
     --, type List1
+    , intercalateOf
     , here
     , there
     , (<&&>)
@@ -106,8 +108,6 @@ import AblyPrelude.Development as X
 import Control.Lens hiding (sequenceOf)
 import Control.Lens as X hiding (sequenceOf)
 
-
-
 bound :: Monad m => Monad m => (s -> m a) -> LensLike m s t a t
 bound g f = g >=> f
 
@@ -139,6 +139,9 @@ shuffle = liftIO . fmap (fmap snd . DL.sortOn fst) . traverse go
     go m = do
         n <- SR.randomIO
         pure (n, m)
+
+shuffleOf :: MonadIO m => Traversal' s a -> s -> m s
+shuffleOf l = partsOf l shuffle
 
 shuffle1 :: forall a m. MonadIO m => DLN.NonEmpty a -> m (DLN.NonEmpty a)
 shuffle1 = liftIO . fmap (fmap snd . DLN.sortWith fst) . traverse go

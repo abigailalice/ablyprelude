@@ -4,6 +4,7 @@
 
 module AblyPrelude.Lens
     ( module X
+    , lmapped
     , (++=)
     , foldMapOf#
     , observe
@@ -118,6 +119,9 @@ infixr 9 .#
 {-# INLINE (.#) #-}
 (.#) :: (DC.Coercible a b) => (b -> c) -> (a -> b) -> (a -> c)
 (.#) f _ = DC.coerce f
+
+lmapped :: Profunctor f => ASetter (f a r) (f b r) b a
+lmapped f = Identity #. lmap (runIdentity #. f)
 
 -- |@'coerceOf'@ is simply a slightly nicer replacement for calling 'coerce',
 -- which avoids complex visible type applications or type signatures. Instead it
