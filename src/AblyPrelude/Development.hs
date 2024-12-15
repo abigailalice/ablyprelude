@@ -5,6 +5,7 @@ module AblyPrelude.Development
     ( module X
     , undefined
     , traceM
+    , debugTraceM
     , deadCode
     , notImplemented
     , pPrint
@@ -60,10 +61,14 @@ deadCode = error
 notImplemented :: GS.HasCallStack => a
 notImplemented = Prelude.undefined
 
-traceM :: (Applicative m, GS.HasCallStack) => DT.Text -> m ()
-traceM msg = DT.traceM (GS.prettyCallStack (pop GS.callStack) <> "\n" <> DT.unpack msg)
+debugTraceM :: (Applicative m, GS.HasCallStack) => DT.Text -> m ()
+debugTraceM msg = DT.traceM (GS.prettyCallStack (pop GS.callStack) <> "\n" <> DT.unpack msg)
   where
-    pop = GS.fromCallSiteList . drop 1 . GS.getCallStack
+    pop = id
+    -- pop = GS.fromCallSiteList . drop 1 . GS.getCallStack
+
+traceM :: Applicative m => DT.Text -> m ()
+traceM = DT.traceM . DT.unpack
 
 pPrintHtml :: TBH.ToMarkup a => a -> IO ()
 pPrintHtml = Prelude.putStrLn . TBHRS.renderHtml . TBH.toHtml

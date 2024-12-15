@@ -24,6 +24,8 @@ module AblyPrelude.Lens
     , _Max
     , (.#)
     , (#.)
+    , _Pure
+    , scanlOf
     ) where
 
 import qualified Data.Semigroup as DS
@@ -122,6 +124,20 @@ infixr 9 .#
 
 lmapped :: Profunctor f => ASetter (f a r) (f b r) b a
 lmapped f = Identity #. lmap (runIdentity #. f)
+
+_Pure :: Prism' [a] a
+_Pure = prism'
+    do pure
+    do \case
+        [a] -> Just a
+        _ -> Nothing
+
+scanlOf :: (a -> b -> b) -> b -> Traversal s t a b -> s -> t
+scanlOf f z l s = flip evalState z $ forOf l s \a -> do
+    b <- get
+    let !z' = f a b
+    put z'
+    pure z'
 
 -- |@'coerceOf'@ is simply a slightly nicer replacement for calling 'coerce',
 -- which avoids complex visible type applications or type signatures. Instead it
