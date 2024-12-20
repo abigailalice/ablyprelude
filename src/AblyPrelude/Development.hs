@@ -7,6 +7,7 @@ module AblyPrelude.Development
     , traceM
     , debugTraceM
     , deadCode
+    , pShowTable
     , notImplemented
     , pPrint
 
@@ -30,6 +31,7 @@ import qualified Prelude
 import Debug.Trace as X hiding (traceM)
 import qualified Debug.Trace as DT
 import qualified Data.Aeson as DA
+import qualified Data.List as DL
 import qualified Data.Text as DT
 import qualified GHC.Stack as GS
 
@@ -42,6 +44,29 @@ import qualified Data.Aeson.Encode.Pretty as DAEP
 
 import qualified Language.Haskell.TH.Syntax as LHTS
 import qualified Data.FileEmbed as DF
+
+-- |@pShowTable@ is a helper function which takes a grid of text and prints it
+-- as a table, with padding so that cells are lined in columns, and a bordered
+-- header for the first row
+pShowTable :: Bool -> [[DT.Text]] -> DT.Text
+pShowTable b xs
+    = DT.intercalate "\n"
+    $ (if b then addHeaderBorder else id)
+    $ fmap (DT.intercalate " | ")
+    $ DL.transpose
+    $ zip lengths xs' <&> \(n, column) -> column <&> \cell -> DT.justifyLeft n ' ' cell
+  where
+    (<&>) = flip fmap
+
+    addHeaderBorder :: [DT.Text] -> [DT.Text]
+    addHeaderBorder [] = []
+    addHeaderBorder (y : ys) = y : DT.replicate (DT.length y) "-" : ys
+
+    xs' :: [[DT.Text]]
+    xs' = DL.transpose xs
+
+    lengths :: [Int]
+    lengths = fmap (maximum . fmap DT.length) $ xs'
 
 embedFile :: [Char] -> LHTS.Q LHTS.Exp
 embedFile x = do
