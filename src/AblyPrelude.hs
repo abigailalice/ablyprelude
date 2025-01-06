@@ -40,7 +40,7 @@ import Data.Ord as X (comparing)
 import qualified Data.List as DL
 import qualified Data.List.NonEmpty as DLN
 
-import AblyPrelude.Data as X hiding (readFile, writeFile, mapMaybe)
+import AblyPrelude.Data as X hiding (readFile, writeFile)
 import AblyPrelude.Monad as X
 import Witherable as X
 import Data.These as X

@@ -21,7 +21,6 @@ module AblyPrelude.Data
     ) where
 
 import Control.Lens (view)
-import Data.Maybe as X (mapMaybe)
 
 import Prelude hiding (readFile, writeFile)
 import Data.Function
