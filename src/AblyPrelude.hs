@@ -74,7 +74,7 @@ import Prelude as X hiding
     , lex
     , lookup
     )
-import GHC.Int as X (Int32, Int64)
+import GHC.Int as X (Int16, Int32, Int64)
 import Data.Bifoldable as X
 import Data.Bitraversable as X
 
