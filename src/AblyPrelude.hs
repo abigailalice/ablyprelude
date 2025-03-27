@@ -5,6 +5,7 @@
 
 module AblyPrelude
     ( module X
+    , toMultiMapOf
     , shuffleOf
     , fmap_
     , filterMap
@@ -30,6 +31,7 @@ module AblyPrelude
 
 import qualified Prelude as Prelude
 import qualified Data.Text.Lens as Lens
+import qualified Data.Map as DM
 import qualified Control.Lens as Lens
 
 
@@ -116,6 +118,9 @@ joined = bound id
 
 sequenceOf :: Applicative m => LensLike m s t (m a) a -> s -> m t
 sequenceOf l = l id
+
+toMultiMapOf :: Ord k => IndexedFold k s a -> s -> DM.Map k (DLN.NonEmpty a)
+toMultiMapOf f s = DM.fromListWith (<>) $ itoListOf (f <. to pure) s
 
 (<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
 (<&&>) = flip (fmap . fmap)
