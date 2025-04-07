@@ -8,13 +8,29 @@ import qualified Control.Monad as CM
 -- import Control.Lens
 import qualified Control.Lens.Internal.Fold as CLIF
 
-get :: Indexable k p => p k (f k') -> k -> f k'
-get f k = indexed f k k
+-- gets the target of the traversal, and make it available as the index
+get :: Indexable a p => p a f_b -> a -> f_b
+get = selfIndex
 
+-- set the target of the traversal
+put :: (Contravariant f, Profunctor p) => a -> p a (f a) -> p s (f s)
+put a = to (\_ -> a)
+
+-- Run an effect in the optic, passing its result back in the index. The
+-- restriction that `m` must be the same in the optic should be fine in the
+-- event we're running the optic with `forOf` or `forEach`, but with `forOf_`
+-- you likely want `lift_`, which allows the `m` in the optic to differ from
+-- the `m` in the action we're passing.
 lift :: Monad m => m k -> IndexedLensLike k m s a s a
 lift m f s = do
     k <- m
     indexed f k s
+
+lift' :: Monad m 
+    => m k -> IndexedLensLike k (Effect m) s a s a
+lift' m f s = effect do
+    k <- m
+    getEffect $ indexed f k s
 
 -- {{{ Qualified Do
 (>>=)
@@ -66,9 +82,6 @@ getEffect = CLIF.getTraversed #. getConst
 phantom :: Effect m a -> Effect m b
 phantom = Const #. CLIF.Traversed #. CLIF.getTraversed #. getConst
 
-put :: a -> LensLike' (Effect m) s a
-put a f _ = phantom (f a)
-
 acting :: forall m s a. Functor m => LensLike' m s a -> LensLike' (Effect m) s a
 acting f g = Const #. CLIF.Traversed . CM.void . f (\x -> x <$ g' x)
   where
@@ -80,6 +93,7 @@ act g f = effect #. (g CM.>=> getEffect #. f)
 
 acts :: Monad m => LensLike' (Effect m) (m a) a
 acts = act id
+
 
 -- }}}
 

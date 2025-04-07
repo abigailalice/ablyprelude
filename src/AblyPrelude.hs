@@ -9,6 +9,9 @@ module AblyPrelude
     , shuffleOf
     , fmap_
     , filterMap
+    , keys
+    , keysWith
+    , disjointUnion
     , bind
     , nf
     , nfIO
@@ -121,6 +124,18 @@ sequenceOf l = l id
 
 toMultiMapOf :: Ord k => IndexedFold k s a -> s -> DM.Map k (DLN.NonEmpty a)
 toMultiMapOf f s = DM.fromListWith (<>) $ itoListOf (f <. to pure) s
+
+keys :: Ord k' => Traversal (Map k v) (Map k' v) k k'
+keys f = fmap DM.fromList . (traverse . _1) f . itoList
+
+keysWith :: (Ord k') => (v -> v -> v) -> Traversal (Map k v) (Map k' v) k k'
+keysWith g f = fmap (DM.fromListWith g) . (traverse . _1) f . itoList
+
+disjointUnion :: Ord k => Map k a -> Map k b -> Map k (These a b)
+disjointUnion as bs = DM.unionWith go (fmap This as) (fmap That bs)
+  where
+    go (This a) (That b) = These a b
+    go _ _ = deadCode "This is a bug"
 
 (<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
 (<&&>) = flip (fmap . fmap)
