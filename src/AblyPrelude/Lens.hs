@@ -1,6 +1,7 @@
 
 {-# LANGUAGE BangPatterns, RankNTypes, ScopedTypeVariables #-}
 {-# LANGUAGE PackageImports, ExplicitNamespaces, MagicHash #-}
+{-# LANGUAGE OverloadedLabels, OverloadedStrings #-}
 
 module AblyPrelude.Lens
     ( module X
@@ -32,6 +33,11 @@ module AblyPrelude.Lens
     , ito'
     , foldingOf
     , scanOver
+    , indented
+    , indent
+    , intercalatedBy
+    , intercalated
+    , lines
     ) where
 
 import qualified Data.Semigroup as DS
@@ -47,6 +53,7 @@ import Data.Generics.Product.Param as X (HasParam(..))
 import Data.Generics.Product.Positions as X (HasPosition(..))
 import qualified Control.Monad.Writer as Writer
 import qualified Control.Monad.State as State
+import qualified Data.Text as DT
 import Data.Text.Lens as X (_Text, IsText)
 import GHC.Exts as Exts hiding (Any)
 import Data.DList as DList hiding (foldr)
@@ -55,7 +62,7 @@ import qualified Control.Lens as L
 import qualified Control.Foldl as CF
 import qualified Control.Scanl as CS
 
-import AblyPrelude
+import AblyPrelude hiding (lines)
 import AblyPrelude.Lens.Strict as X
 
 -- {{{ tedious type wrapping
@@ -227,4 +234,20 @@ foldMapOf# c l f = review c #. foldMapOf l (view c #. f)
 -- newtypes.
 coerceOf :: (DC.Coercible a b) => X.AnIso' a b -> b -> a
 coerceOf _ = DC.coerce
+
+indented :: Profunctor p => Int -> p a (Const Text a) -> p a (Const Text a)
+indented n = setting rmap . #_Const %~ indent n
+
+intercalatedBy :: Text -> Fold s a -> LensLike' (Const Text) s a
+intercalatedBy n l f = Const . DT.intercalate n . fmap (getConst . f) . toListOf l 
+
+intercalated :: Foldable f => Text -> LensLike' (Const Text) (f a) a
+intercalated n = intercalatedBy n folded
+
+indent :: Int -> Text -> Text
+indent 0 = id
+indent n = over (lines . mapped) (DT.replicate n " " <>)
+
+lines :: Iso' Text [Text]
+lines = iso (DT.splitOn "\n") (DT.intercalate "\n")
 
