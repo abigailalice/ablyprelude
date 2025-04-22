@@ -42,7 +42,7 @@ module AblyPrelude.Lens
 
 import qualified Data.Semigroup as DS
 import Data.Monoid
-import Control.Lens as X hiding (set')
+import Control.Lens as X hiding (set', view)
 import qualified Control.Monad.State.Strict as CMSS
 import Data.Generics.Product.Any as X (HasAny(..))
 import Data.Generics.Product.Typed as X (HasType(..))

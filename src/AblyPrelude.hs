@@ -28,10 +28,18 @@ module AblyPrelude
     , (<&&>)
     , sequenceOf
     , bound
+    , rebound
     , joined
+    , view
+    , onto
+    , interspersed
+    , toEndo
+    , fromEndo
+    , reindex
     ) where
 
 import qualified Prelude as Prelude
+import qualified Data.Text as DT
 import qualified Data.Text.Lens as Lens
 import qualified Data.Map as DM
 import qualified Control.Lens as Lens
@@ -108,14 +116,20 @@ import qualified GHC.Stack as GS
 import qualified System.Random as SR
 
 import AblyPrelude.Development as X
-import Control.Lens hiding (sequenceOf)
-import Control.Lens as X hiding (sequenceOf)
+import Control.Lens hiding (sequenceOf, view)
+import Control.Lens as X hiding (sequenceOf, view)
 
-bound :: Monad m => Monad m => (s -> m a) -> LensLike m s t a t
+bound :: Monad m => (s -> m a) -> LensLike m s t a t
 bound g f = g >=> f
+
+rebound :: Monad m => (b -> m t) -> LensLike m s t s b
+rebound = flip bound
 
 joined :: Monad m => LensLike m (m a) t a t
 joined = bound id
+
+-- rejoined :: Monad m => LensLike m s t s (m t)
+-- rejoined = rebound id
 
 sequenceOf :: Applicative m => LensLike m s t (m a) a -> s -> m t
 sequenceOf l = l id
@@ -191,6 +205,26 @@ bind = (=<<)
 
 show :: (Show a, Lens.IsText b) => a -> b
 show = Lens.view Lens.packed . Prelude.show
+
+onto :: (r -> r') -> (s -> Const r a) -> (s -> Const r' a)
+onto f p s = Const $ f $ getConst $ p s
+
+interspersed :: Text -> (a -> Const (Endo [Text]) r) -> (a -> Const Text r)
+interspersed t = onto (DT.intercalate t . fromEndo)
+
+reindex :: Indexable k p => (k' -> k) -> p s (m a) -> Indexed k' s (m a)
+reindex k g = Indexed (\k' s -> indexed g (k k') s)
+
+toEndo :: Semigroup a => a -> Endo a
+toEndo a = Endo (a <>)
+
+fromEndo :: Monoid a => Endo a -> a
+fromEndo (Endo a) = a mempty
+
+view :: MonadReader s m => ((a -> Const a a) -> s -> Const r s) -> m r
+view l = do
+    s <- ask
+    pure $ getConst (l Const s)
 
 {-# INLINE nfIO #-}
 nfIO :: (X.NFData a, MonadIO m) => a -> m a

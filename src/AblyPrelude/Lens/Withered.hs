@@ -1,4 +1,6 @@
 
+{-# LANGUAGE OverloadedLabels #-}
+
 module AblyPrelude.Lens.Withered
     ( type WitherLike
     , type WitherLike'
@@ -28,6 +30,12 @@ module AblyPrelude.Lens.Withered
     , guardedM
     , witherPrism
     , nonEmpty
+    , guardedA
+    , guardedAM
+    , witherPrismA
+    , nonEmptyA
+    , discharge
+    , codischarge
 
     , ordNubOf
     , ordNubOfOn
@@ -37,7 +45,7 @@ import Prelude hiding (filter)
 import qualified Data.List.NonEmpty as DLN
 import Data.Maybe
 import Control.Applicative
-import Control.Lens hiding (filtered, ifiltered, forOf, iforOf)
+import Control.Lens hiding (filtered, ifiltered, forOf, iforOf, view)
 import Control.Monad
 import qualified Data.Set as DS
 import Control.Monad.Trans.State
@@ -131,35 +139,71 @@ withered f s = W.wither (runMaybeT . f) s
 iwithered :: (W.WitherableWithIndex k t) => IndexedWither k (t a) (t b) a b
 iwithered f s = W.iwither (\k a -> runMaybeT $ indexed f k a) s
 
+-- |@'discharge'@ lets any type be witherable, by leaving the target unmodified
+-- in the event of a failure.
+discharge :: Functor m => WitherLike' m a a
+discharge f s = fmap (maybe s id) $ runMaybeT (f s)
+
+-- |When composed after a WitherLike @'codischarge'@ converts it back to a
+-- LensLike.
+codischarge :: (Profunctor p, Functor m) => p a (m a) -> p a (MaybeT m a) -- (a -> m a) -> a -> MaybeT m a
+codischarge = rmap (MaybeT . fmap Just)
+
 -- }}}
 
 -- {{{ LensLike with Alternative
+
+-- test :: (Eq a, Num a) => Traversal' a a
+-- test = guarded (==0) . guarding
+
+-- guarding :: Alternative m => LensLike' m a a
+-- guarding f s = fmap (maybe s id) $ optional (f s)
 
 -- @'guarded'@ is similar to @'filtered'@, except that @'filtered'@ traverses
 -- elements which pass the filter, but doesn't remove them. @'guarded'@ removes
 -- them as well, though will typically need something to discharge the
 -- @'Alternative'@ constraint.
-guarded :: Alternative m => (a -> Bool) -> LensLike m a b a b
+guarded :: Applicative m => (a -> Bool) -> LensLike (MaybeT m) a b a b
 guarded p f a
+    | p a = f a
+    | otherwise = MaybeT (pure empty)
+
+guardedA :: Alternative m => (a -> Bool) -> LensLike m a b a b
+guardedA p f a
     | p a = f a
     | otherwise = empty
 
 -- |@'guarded'@ but with an effect. Again, see @'filtered'@.
-guardedM :: (Alternative m, W.Filterable m) => (a -> m Bool) -> LensLike m a b a b
-guardedM p f a = W.catMaybes (guard <$> p a) *> f a
+guardedAM
+    :: (Alternative m, W.Filterable m)
+    => (a -> m Bool) -> LensLike m a b a b
+guardedAM p f a = W.catMaybes (guard <$> p a) *> f a
+
+guardedM
+    :: (Applicative m, W.Filterable m)
+    => (a -> m Bool) -> LensLike (MaybeT m) a b a b
+guardedM p f a = MaybeT $ (W.filter id $ p a) *> runMaybeT (f a)
 
 -- |@'witherPrism'@ traverses under the prism, throwing an exception up if the
 -- element isn't present. If used after a @'withered'@ this will remove the
 -- element.
-witherPrism :: (Alternative m, W.Filterable m) => Prism s t a b -> LensLike m s t a b
-witherPrism l f s = withPrism l \proj inj -> case inj s of
+witherPrismA :: (Alternative m, W.Filterable m) => Prism s t a b -> LensLike m s t a b
+witherPrismA l f s = withPrism l \proj inj -> case inj s of
     Left _ -> empty
+    Right a -> fmap proj . f $ a
+
+witherPrism :: Applicative m => Prism s t a b -> LensLike (MaybeT m) s t a b
+witherPrism l f s = withPrism l \proj inj -> case inj s of
+    Left _ -> MaybeT (pure empty)
     Right a -> fmap proj . f $ a
 
 -- |@'nonEmpty'@ catches errors in its elements, filtering them out, unless all
 -- elements are filtered out, in which case the error is propagated.
-nonEmpty :: (Alternative m, W.Filterable m) => LensLike m (DLN.NonEmpty a) (DLN.NonEmpty b) a b
-nonEmpty f = W.catMaybes . fmap DLN.nonEmpty . W.wither (optional . f) . DLN.toList
+nonEmptyA :: (Alternative m, W.Filterable m) => LensLike m (DLN.NonEmpty a) (DLN.NonEmpty b) a b
+nonEmptyA f = W.catMaybes . fmap DLN.nonEmpty . W.wither (optional . f) . DLN.toList
+
+nonEmpty :: Applicative m => LensLike (MaybeT m) (DLN.NonEmpty a) (DLN.NonEmpty b) a b
+nonEmpty f = MaybeT . fmap DLN.nonEmpty . W.wither (runMaybeT . f) . DLN.toList
 
 -- }}}
 
