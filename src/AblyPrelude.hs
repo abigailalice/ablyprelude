@@ -2,6 +2,7 @@
 {-# LANGUAGE PackageImports, PatternSynonyms, TypeOperators, ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds, TypeFamilies, ViewPatterns, FlexibleInstances #-}
 {-# LANGUAGE TypeApplications, AllowAmbiguousTypes, ConstraintKinds #-}
+{-# LANGUAGE OverloadedStrings, OverloadedLabels #-}
 
 module AblyPrelude
     ( module X
@@ -31,10 +32,16 @@ module AblyPrelude
     , rebound
     , joined
     , view
-    , onto
-    , interspersed
-    , toEndo
-    , fromEndo
+    , out
+    , outward
+    , into
+    , intercalated
+    , intercalatedBy
+    , input
+    , output
+    , lines
+    , indented
+    , indented1
     , reindex
     ) where
 
@@ -81,6 +88,7 @@ import Prelude as X hiding
     , read
     , head
     , span
+    , lines
     , filter
     , lex
     , lookup
@@ -147,7 +155,7 @@ disjointUnion :: Ord k => Map k a -> Map k b -> Map k (These a b)
 disjointUnion as bs = DM.unionWith go (fmap This as) (fmap That bs)
   where
     go (This a) (That b) = These a b
-    go _ _ = deadCode "This is a bug"
+    go _ _ = deadCode ""
 
 (<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
 (<&&>) = flip (fmap . fmap)
@@ -206,20 +214,51 @@ bind = (=<<)
 show :: (Show a, Lens.IsText b) => a -> b
 show = Lens.view Lens.packed . Prelude.show
 
-onto :: (r -> r') -> (s -> Const r a) -> (s -> Const r' a)
-onto f p s = Const $ f $ getConst $ p s
+-- |@'onto'@ is similar to @'to'@, applying a function to a getter, but rather
+-- than applying it the target of the lens it applies it to the eventually
+-- gotten value.
+out :: Profunctor p => (r -> r') -> p s (Const r a) -> p s (Const r' a)
+out f = output %~ Const . f . getConst
 
-interspersed :: Text -> (a -> Const (Endo [Text]) r) -> (a -> Const Text r)
-interspersed t = onto (DT.intercalate t . fromEndo)
+-- Getting a s a -> Getting r s a
+into :: (Contravariant f, Profunctor p)
+    => ((x -> Const x x) -> (s -> Const a s))
+    -> Optic' p f s a
+into f = to (view f)
+
+-- Getting t r r -> p s (Const r) a -> p s (Const t a)
+outward :: (Profunctor p)
+    => ((x -> Const x x) -> (r -> Const t r))
+    -> p s (Const r a) -> p s (Const t a)
+outward g = out (view g)
+
+indented :: Profunctor p => Int -> p s (Const Text a) -> p s (Const Text a)
+indented n = out (indent n)
+
+indented1 :: Profunctor p => Int -> p s (Const Text a) -> p s (Const Text a)
+indented1 n = out (DT.drop n . indent n)
+
+output :: Profunctor p => Setter (p a b) (p a b') b b'
+output = setting rmap
+
+input :: Profunctor p => Setter (p a b) (p a' b) a' a
+input = setting lmap
+
+intercalatedBy :: Text -> Fold s a -> LensLike' (Const Text) s a
+intercalatedBy n l f = Const . DT.intercalate n . fmap (getConst . f) . toListOf l 
+
+intercalated :: Foldable f => Text -> LensLike' (Const Text) (f a) a
+intercalated n = intercalatedBy n folded
+
+indent :: Int -> Text -> Text
+indent 0 = id
+indent n = over (lines . mapped) (DT.replicate n " " <>)
+
+lines :: Iso' Text [Text]
+lines = iso (DT.splitOn "\n") (DT.intercalate "\n")
 
 reindex :: Indexable k p => (k' -> k) -> p s (m a) -> Indexed k' s (m a)
 reindex k g = Indexed (\k' s -> indexed g (k k') s)
-
-toEndo :: Semigroup a => a -> Endo a
-toEndo a = Endo (a <>)
-
-fromEndo :: Monoid a => Endo a -> a
-fromEndo (Endo a) = a mempty
 
 view :: MonadReader s m => ((a -> Const a a) -> s -> Const r s) -> m r
 view l = do

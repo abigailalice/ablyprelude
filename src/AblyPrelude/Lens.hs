@@ -5,7 +5,6 @@
 
 module AblyPrelude.Lens
     ( module X
-    , lmapped
     , (++=)
     , foldMapOf#
     , observe
@@ -33,11 +32,6 @@ module AblyPrelude.Lens
     , ito'
     , foldingOf
     , scanOver
-    , indented
-    , indent
-    , intercalatedBy
-    , intercalated
-    , lines
     ) where
 
 import qualified Data.Semigroup as DS
@@ -53,7 +47,6 @@ import Data.Generics.Product.Param as X (HasParam(..))
 import Data.Generics.Product.Positions as X (HasPosition(..))
 import qualified Control.Monad.Writer as Writer
 import qualified Control.Monad.State as State
-import qualified Data.Text as DT
 import Data.Text.Lens as X (_Text, IsText)
 import GHC.Exts as Exts hiding (Any)
 import Data.DList as DList hiding (foldr)
@@ -75,7 +68,6 @@ _Read = _Text . _Show
 
 (++=) :: (Writer.MonadWriter w m) => ASetter' w a -> a -> m ()
 (++=) = scribe
-
 
 -- {{{ indexed
 -- |Uses a filter to obtain a new index, while still passing the old index
@@ -206,13 +198,10 @@ infixr 9 .#
 (.#) f _ = DC.coerce f
 -- }}}
 
-lmapped :: Profunctor f => ASetter (f a r) (f b r) b a
-lmapped f = Identity #. lmap (runIdentity #. f)
-
-_Pure :: Prism' [a] a
+_Pure :: (Applicative f, Foldable f) => Prism' (f a) a
 _Pure = prism'
     do pure
-    do \case
+    do \x -> AblyPrelude.toList x & \case
         [a] -> Just a
         _ -> Nothing
 
@@ -235,19 +224,4 @@ foldMapOf# c l f = review c #. foldMapOf l (view c #. f)
 coerceOf :: (DC.Coercible a b) => X.AnIso' a b -> b -> a
 coerceOf _ = DC.coerce
 
-indented :: Profunctor p => Int -> p a (Const Text a) -> p a (Const Text a)
-indented n = setting rmap . #_Const %~ indent n
-
-intercalatedBy :: Text -> Fold s a -> LensLike' (Const Text) s a
-intercalatedBy n l f = Const . DT.intercalate n . fmap (getConst . f) . toListOf l 
-
-intercalated :: Foldable f => Text -> LensLike' (Const Text) (f a) a
-intercalated n = intercalatedBy n folded
-
-indent :: Int -> Text -> Text
-indent 0 = id
-indent n = over (lines . mapped) (DT.replicate n " " <>)
-
-lines :: Iso' Text [Text]
-lines = iso (DT.splitOn "\n") (DT.intercalate "\n")
 

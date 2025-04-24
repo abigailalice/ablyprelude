@@ -11,6 +11,8 @@ module AblyPrelude.Lens.Withered
     , type IndexedWither
     , type IndexedWither'
 
+    , filteringMOf
+    , ifilteringMOf
     , forOf
     , witherOf
     , filterOf
@@ -20,6 +22,15 @@ module AblyPrelude.Lens.Withered
     , iwitherOf
     , ifilterOf
     , imapMaybeOf
+
+    , withering
+    , filtering
+    , filteringM
+    , mapMaybeing
+    , iwithering
+    , ifiltering
+    , imapMaybeing
+    , ifilteringM
 
     , withered
     , filtered
@@ -34,22 +45,18 @@ module AblyPrelude.Lens.Withered
     , guardedAM
     , witherPrismA
     , nonEmptyA
-    , discharge
-    , codischarge
+    , caught
+    , cocaught
 
     , ordNubOf
     , ordNubOfOn
     ) where
 
+import AblyPrelude hiding (get, put, forOf, iforOf, filtered, ifiltered)
 import Prelude hiding (filter)
 import qualified Data.List.NonEmpty as DLN
-import Data.Maybe
-import Control.Applicative
-import Control.Lens hiding (filtered, ifiltered, forOf, iforOf, view)
-import Control.Monad
 import qualified Data.Set as DS
 import Control.Monad.Trans.State
-import Control.Monad.Trans.Maybe
 import qualified Witherable as W
 
 type WitherLike f s t a b = (a -> MaybeT f b) -> s -> f t
@@ -123,31 +130,75 @@ catMaybesOf
     -> s -> t
 catMaybesOf l s = mapMaybeOf l id s
 
+filteringMOf
+    :: ASetter (m Bool) (m (Maybe a)) Bool (Maybe a)
+    -> WitherLike' m s a
+    -> (a -> m Bool)
+    -> s -> m s
+filteringMOf mapped' l f = witherOf l \a -> over mapped' (\b -> guard b *> Just a) (f a)
+
+ifilteringMOf
+    :: ASetter (m Bool) (m (Maybe a)) Bool (Maybe a)
+    -> IndexedWitherLike' k m s a
+    -> (k -> a -> m Bool)
+    -> s -> m s
+ifilteringMOf mapped' l f = iwitherOf l \k a -> over mapped' (\b -> guard b *> Just a) (f k a)
+
 -- }}}
 
 -- {{{ Withers
 
+filtering :: ((a -> Bool) -> s -> s) -> WitherLike' Identity s a
+filtering f g s = Identity $ f (isJust . runIdentity . runMaybeT . g) s
+
+withering :: ((a -> m (Maybe b)) -> s -> m t) -> WitherLike m s t a b
+withering f g s = f (runMaybeT . g) s
+
+mapMaybeing :: ((a -> Maybe b) -> s -> t) -> WitherLike Identity s t a b
+mapMaybeing f g s = Identity $ f (runIdentity . runMaybeT . g) s
+
+imapMaybeing :: ((k -> a -> Maybe b) -> s -> t) -> IndexedWitherLike k Identity s t a b
+imapMaybeing f g s = Identity $ f (\k a -> runIdentity $ runMaybeT $ indexed g k a) s
+
+filteringM
+    :: Setter (m (Maybe a)) (m Bool) (Maybe a) Bool
+    -> ((a -> m Bool) -> s -> m s)
+    -> WitherLike' m s a
+filteringM mapped' f = withering (over (input . output . mapped') isJust f)
+
+ifilteringM
+    :: Setter (m (Maybe a)) (m Bool) (Maybe a) Bool
+    -> ((k -> a -> m Bool) -> s -> m s)
+    -> IndexedWitherLike' k m s a
+ifilteringM mapped' = iwithering & input . input . output . output . mapped' %~ isJust
+
+ifiltering :: ((k -> a -> Bool) -> s -> s) -> IndexedWitherLike' k Identity s a
+ifiltering f g s = Identity $ f (\k a -> isJust $ runIdentity $ runMaybeT $ indexed g k a) s
+
+iwithering :: ((k -> a -> m (Maybe b)) -> s -> m t) -> IndexedWitherLike k m s t a b
+iwithering f g s = f (\k a -> runMaybeT $ indexed g k a) s
+
 filtered :: W.Filterable f => WitherLike' Identity (f a) a
-filtered f s = Identity $ W.filter (isJust . runIdentity . runMaybeT . f) s
+filtered = filtering W.filter
 
 ifiltered :: W.FilterableWithIndex k f => IndexedWitherLike' k Identity (f a) a
-ifiltered f s = Identity $ W.ifilter (\k a -> isJust $ runIdentity $ runMaybeT $ indexed f k a) s
+ifiltered = ifiltering W.ifilter
 
 withered :: (W.Witherable t) => Wither (t a) (t b) a b
-withered f s = W.wither (runMaybeT . f) s
+withered = withering W.wither
 
 iwithered :: (W.WitherableWithIndex k t) => IndexedWither k (t a) (t b) a b
-iwithered f s = W.iwither (\k a -> runMaybeT $ indexed f k a) s
+iwithered = iwithering W.iwither
 
 -- |@'discharge'@ lets any type be witherable, by leaving the target unmodified
 -- in the event of a failure.
-discharge :: Functor m => WitherLike' m a a
-discharge f s = fmap (maybe s id) $ runMaybeT (f s)
+caught :: Functor m => WitherLike' m a a
+caught f s = fmap (maybe s id) $ runMaybeT (f s)
 
 -- |When composed after a WitherLike @'codischarge'@ converts it back to a
 -- LensLike.
-codischarge :: (Profunctor p, Functor m) => p a (m a) -> p a (MaybeT m a) -- (a -> m a) -> a -> MaybeT m a
-codischarge = rmap (MaybeT . fmap Just)
+cocaught :: (Profunctor p, Functor m) => p a (m a) -> p a (MaybeT m a) -- (a -> m a) -> a -> MaybeT m a
+cocaught = rmap (MaybeT . fmap Just)
 
 -- }}}
 
