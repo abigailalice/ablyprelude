@@ -1,24 +1,71 @@
 
-{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLabels, QuantifiedConstraints #-}
 
-module AblyPrelude.Lens.Polymorphic
+module AblyPrelude.Lens.Adaptor
     ( view
     , reindexed
     , toListOf
     , toListAOf
     , interspersed
+    , ht
+    , hf
+    , test
+    , overview
+    , adapt
+    , open_
     ) where
 
 import qualified Data.List.Final as DLF
 import AblyPrelude hiding (view, reindexed, reverse, partitionThese, toListOf, uncons, unsnoc)
-import AblyPrelude.Lens ()
+import AblyPrelude.Lens (_Identity, _Const)
 
 import qualified Data.Text as DT
 import qualified Control.Lens as CL
+import qualified Control.Lens.Internal.Fold as CLIF
 
 -- }}}
 
-view :: MonadReader s m => ((a -> Const a a) -> s -> Const r s) -> m r
+open_ :: Profunctor p => p a (Const (CLIF.Traversed () m) b) -> p a (m ())
+open_ = adapted
+
+adapt :: forall t b a p. (Coercible b t, Profunctor p) => p a b -> p a t
+adapt = rmap coerce
+
+adapted :: (Coercible (m b) (n t), Profunctor p)
+    => p a (m b) -> p a (n t)
+adapted = rmap coerce
+
+ht :: Profunctor p
+    => Gettable c s a
+    -> p w s -> p w c
+ht p = rmap (view p)
+
+hf :: Profunctor p
+    => AnIso c c s s
+    -> p w s
+    -> p w c
+hf p = ht (from p)
+
+type Gettable r s a = (a -> Const a a) -> (s -> Const r s)
+
+hft :: Profunctor p
+    => AnIso l l r r
+    -> Gettable r s a
+    -> p w s
+    -> p w l
+hft f t = hf f . ht t
+
+overview :: ASetter s t a b -> Gettable b a x -> s -> t
+overview f g s = over f (view g) s
+
+test :: [(a, b)] -> [a]
+test = (ht _Identity . mapped . hft _Identity _Const . _1 . hf _Const) id
+
+-- h :: [(a, b)] -> [a]
+-- h = (from _Identity . mapped . _Identity) _
+
+
+view :: MonadReader s m => Gettable r s a -> m r
 view l = do
     s <- ask
     pure $ getConst (l Const s)

@@ -16,6 +16,8 @@ module AblyPrelude.Lens
     , type DList, _DList
     , type All, _All
     , type Any, _Any
+    , _Identity
+    , _Const
     , type Ap, _Ap
     , type Alt, _Alt
     , _First, _First1
@@ -144,6 +146,12 @@ observe l = State.state (l (\x -> (x, x)))
 -- {{{
 _Sum :: X.Iso (Sum a) (Sum b) a b
 _Sum = X.coerced
+
+_Identity :: Iso (Identity a) (Identity b) a b
+_Identity = coerced
+
+_Const :: Iso (Const a x) (Const b x) a b
+_Const = coerced
 
 _Product :: X.Iso (Product a) (Product b) a b
 _Product = X.coerced
