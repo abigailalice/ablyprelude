@@ -7,9 +7,11 @@
 module AblyPrelude
     ( module X
     , toMultiMapOf
+    , nfM
+    , whnfM
     , shuffleOf
     , fmap_
-    , filterMap
+    , zipperList
     , keys
     , keysWith
     , disjointUnion
@@ -43,6 +45,8 @@ module AblyPrelude
     , indented
     , indented1
     , reindex
+    , forOf
+    , iforOf
     ) where
 
 import qualified Prelude as Prelude
@@ -104,6 +108,7 @@ import Data.Proxy as X (Proxy(..))
 import System.IO.Unsafe as X (unsafePerformIO)
 
 import Data.Generics.Product.Fields as X (HasField)
+import Data.Generics.Labels ()
 import qualified Data.Generics.Product.Fields as DGPF
 import qualified GHC.Records as GR
 
@@ -124,20 +129,26 @@ import qualified GHC.Stack as GS
 import qualified System.Random as SR
 
 import AblyPrelude.Development as X
-import Control.Lens hiding (sequenceOf, view)
-import Control.Lens as X hiding (sequenceOf, view)
+import Control.Lens hiding (sequenceOf, view, forOf, iforOf)
+import Control.Lens as X hiding (sequenceOf, view, forOf, iforOf)
 
-bound :: Monad m => (s -> m a) -> LensLike m s t a t
-bound g f = g >=> f
+-- {{{ optic consumers
 
-rebound :: Monad m => (b -> m t) -> LensLike m s t s b
-rebound = flip bound
+view :: MonadReader s m => ((a -> Const a a) -> s -> Const r s) -> m r
+view l = do
+    s <- ask
+    pure $ getConst (l Const s)
 
-joined :: Monad m => LensLike m (m a) t a t
-joined = bound id
+-- |This is 'iforOf' with a more relaxed type. I worry this might cause
+-- type-inference issues, but it is necessary for monadic changing optics
+iforOf :: (Indexed k a fb -> s -> ft) -> s -> (k -> a -> fb) -> ft
+iforOf l s f = l (Indexed f) s
 
--- rejoined :: Monad m => LensLike m s t s (m t)
--- rejoined = rebound id
+-- |This is 'forOf' with a more relaxed type. I worry this might cause
+-- type-inference issues, but it is necessary for monadic changing optics. This
+-- can be made even more relaxed, using 'afb' in place of 'a -> fb'.
+forOf :: ((a -> fb) -> s -> ft) -> s -> (a -> fb) -> ft
+forOf = flip
 
 sequenceOf :: Applicative m => LensLike m s t (m a) a -> s -> m t
 sequenceOf l = l id
@@ -145,20 +156,27 @@ sequenceOf l = l id
 toMultiMapOf :: Ord k => IndexedFold k s a -> s -> DM.Map k (DLN.NonEmpty a)
 toMultiMapOf f s = DM.fromListWith (<>) $ itoListOf (f <. to pure) s
 
+shuffleOf :: MonadIO m => Traversal' s a -> s -> m s
+shuffleOf l = partsOf l shuffle
+
+-- }}}
+
+-- {{{ optics
+
+-- {{{ containers
+
 keys :: Ord k' => Traversal (Map k v) (Map k' v) k k'
 keys f = fmap DM.fromList . (traverse . _1) f . itoList
 
 keysWith :: (Ord k') => (v -> v -> v) -> Traversal (Map k v) (Map k' v) k k'
 keysWith g f = fmap (DM.fromListWith g) . (traverse . _1) f . itoList
 
-disjointUnion :: Ord k => Map k a -> Map k b -> Map k (These a b)
-disjointUnion as bs = DM.unionWith go (fmap This as) (fmap That bs)
+zipperList :: forall m a b. Applicative m => IndexedLensLike ([a], [a]) m [a] [b] a b
+zipperList f xs = go [] xs
   where
-    go (This a) (That b) = These a b
-    go _ _ = deadCode ""
-
-(<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
-(<&&>) = flip (fmap . fmap)
+    go :: [a] -> [a] -> m [b]
+    go _ [] = pure []
+    go ls (r : rs) = liftA2 (:) (indexed f (ls, rs) r) (go (r : ls) rs)
 
 here :: Traversal (These a b) (These a' b) a a'
 here f (This x) = This <$> f x
@@ -170,49 +188,22 @@ there _ (This x) = pure (This x)
 there f (These x y) = These x <$> f y
 there f (That y) = That <$> f y
 
-type HasField' l s a = (DGPF.HasField' l s a, GR.HasField l s a)
+lines :: Iso' Text [Text]
+lines = iso (DT.splitOn "\n") (DT.intercalate "\n")
 
-shuffle :: forall a m. (MonadIO m) => [a] -> m [a]
-shuffle = liftIO . fmap (fmap snd . DL.sortOn fst) . traverse go
-  where
-    go :: a -> IO (Double, a)
-    go m = do
-        n <- SR.randomIO
-        pure (n, m)
+-- }}}
 
-shuffleOf :: MonadIO m => Traversal' s a -> s -> m s
-shuffleOf l = partsOf l shuffle
+bound :: Monad m => (s -> m a) -> LensLike m s t a t
+bound g f = g >=> f
 
-shuffle1 :: forall a m. MonadIO m => DLN.NonEmpty a -> m (DLN.NonEmpty a)
-shuffle1 = liftIO . fmap (fmap snd . DLN.sortWith fst) . traverse go
-  where
-    go :: a -> IO (Double, a)
-    go m = do
-        n <- SR.randomIO
-        pure (n, m)
+rebound :: Monad m => (b -> m t) -> LensLike m s t s b
+rebound = flip bound
 
-filterMap :: forall a b. (a -> Maybe b) -> [a] -> [b]
-filterMap f = foldr go []
-  where
-    go :: a -> [b] -> [b]
-    go x ys = case f x of
-        Just y -> y : ys
-        Nothing -> ys
+joined :: Monad m => LensLike m (m a) t a t
+joined = bound id
 
-type (:=>) a b = (a, b)
-pattern (:=>) :: a -> b -> (a, b)
-pattern a :=> b = (a, b)
-
-{-# INLINE fmap_ #-}
-fmap_ :: (Functor f) => a -> f unit -> f a
-fmap_ = (<$)
-
-{-# INLINE bind #-}
-bind :: (Monad m) => (a -> m b) -> m a -> m b
-bind = (=<<)
-
-show :: (Show a, Lens.IsText b) => a -> b
-show = Lens.view Lens.packed . Prelude.show
+reindex :: Indexable k p => (k' -> k) -> p s (m a) -> Indexed k' s (m a)
+reindex k g = Indexed (\k' s -> indexed g (k k') s)
 
 -- |@'onto'@ is similar to @'to'@, applying a function to a getter, but rather
 -- than applying it the target of the lens it applies it to the eventually
@@ -250,24 +241,70 @@ intercalatedBy n l f = Const . DT.intercalate n . fmap (getConst . f) . toListOf
 intercalated :: Foldable f => Text -> LensLike' (Const Text) (f a) a
 intercalated n = intercalatedBy n folded
 
+-- }}}
+
+-- rejoined :: Monad m => LensLike m s t s (m t)
+-- rejoined = rebound id
+
+
+disjointUnion :: Ord k => Map k a -> Map k b -> Map k (These a b)
+disjointUnion as bs = DM.unionWith go (fmap This as) (fmap That bs)
+  where
+    go (This a) (That b) = These a b
+    go _ _ = deadCode ""
+
+(<&&>) :: (Functor f, Functor g) => f (g a) -> (a -> b) -> f (g b)
+(<&&>) = flip (fmap . fmap)
+
+
+type HasField' l s a = (DGPF.HasField' l s a, GR.HasField l s a)
+
+shuffle :: forall a m. (MonadIO m) => [a] -> m [a]
+shuffle = liftIO . fmap (fmap snd . DL.sortOn fst) . traverse go
+  where
+    go :: a -> IO (Double, a)
+    go m = do
+        n <- SR.randomIO
+        pure (n, m)
+
+shuffle1 :: forall a m. MonadIO m => DLN.NonEmpty a -> m (DLN.NonEmpty a)
+shuffle1 = liftIO . fmap (fmap snd . DLN.sortWith fst) . traverse go
+  where
+    go :: a -> IO (Double, a)
+    go m = do
+        n <- SR.randomIO
+        pure (n, m)
+
+type (:=>) a b = (a, b)
+pattern (:=>) :: a -> b -> (a, b)
+pattern a :=> b = (a, b)
+
+{-# INLINE fmap_ #-}
+fmap_ :: (Functor f) => a -> f unit -> f a
+fmap_ = (<$)
+
+{-# INLINE bind #-}
+bind :: (Monad m) => (a -> m b) -> m a -> m b
+bind = (=<<)
+
+show :: (Show a, Lens.IsText b) => a -> b
+show = Lens.view Lens.packed . Prelude.show
+
 indent :: Int -> Text -> Text
 indent 0 = id
 indent n = over (lines . mapped) (DT.replicate n " " <>)
 
-lines :: Iso' Text [Text]
-lines = iso (DT.splitOn "\n") (DT.intercalate "\n")
-
-reindex :: Indexable k p => (k' -> k) -> p s (m a) -> Indexed k' s (m a)
-reindex k g = Indexed (\k' s -> indexed g (k k') s)
-
-view :: MonadReader s m => ((a -> Const a a) -> s -> Const r s) -> m r
-view l = do
-    s <- ask
-    pure $ getConst (l Const s)
+-- {{{ strictness
 
 {-# INLINE nfIO #-}
 nfIO :: (X.NFData a, MonadIO m) => a -> m a
 nfIO = liftIO . Exception.evaluate . X.force
+
+whnfM :: Applicative m => a -> m a
+whnfM a = a `seq` pure a
+
+nfM :: (NFData a, Applicative m) => a -> m a
+nfM a = whnfM (nf a)
 
 {-# INLINE nf #-}
 nf :: (X.NFData a) => a -> a
@@ -276,6 +313,8 @@ nf = X.force
 {-# INLINE whnfIO #-}
 whnfIO :: MonadIO m => a -> m a
 whnfIO = liftIO . Exception.evaluate
+
+-- }}}
 
 {-# INLINE errorIO #-}
 errorIO :: (GS.HasCallStack, MonadIO m) => [Char] -> m a

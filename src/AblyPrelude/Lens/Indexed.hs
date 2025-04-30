@@ -5,7 +5,9 @@ import Prelude
 import AblyPrelude.Lens
 import qualified Control.Monad as CM
 -- import Control.Applicative
+--
 -- import Control.Lens
+import Data.Monoid
 import qualified Control.Lens.Internal.Fold as CLIF
 
 -- gets the target of the traversal, and make it available as the index
@@ -27,7 +29,7 @@ lift m f s = do
     indexed f k s
 
 lift' :: Monad m 
-    => m k -> IndexedLensLike k (Effect m) s a s a
+    => m k -> IndexedLensLike k (Const (CLIF.Traversed () m)) s a s a
 lift' m f s = effect do
     k <- m
     getEffect $ indexed f k s
@@ -73,26 +75,32 @@ _Index = setting reindexed
 
 type Effect m = Const (CLIF.Traversed () m)
 -- {{{ Effect
-effect :: m () -> Effect m a
+effect :: m r -> Const (CLIF.Traversed r m) a
 effect = Const #. CLIF.Traversed
 
-getEffect :: Effect m a -> m ()
+getEffect :: Const (CLIF.Traversed r m) a -> m r
 getEffect = CLIF.getTraversed #. getConst
 
-phantom :: Effect m a -> Effect m b
+phantom :: Const (CLIF.Traversed r m) a -> Const (CLIF.Traversed r m) b
 phantom = Const #. CLIF.Traversed #. CLIF.getTraversed #. getConst
 
-acting :: forall m s a. Functor m => LensLike' m s a -> LensLike' (Effect m) s a
+acting :: forall m s a. Functor m => LensLike' m s a -> LensLike' (Const (CLIF.Traversed () m)) s a
 acting f g = Const #. CLIF.Traversed . CM.void . f (\x -> x <$ g' x)
   where
     g' :: a -> m ()
     g' = CLIF.getTraversed #. getConst #. g
 
-act :: Monad m => (s -> m a) -> LensLike' (Effect m) s a
+act :: Monad m => (s -> m a) -> LensLike' (Const (CLIF.Traversed r m)) s a
 act g f = effect #. (g CM.>=> getEffect #. f)
 
-acts :: Monad m => LensLike' (Effect m) (m a) a
+acts :: Monad m => LensLike' (Const (CLIF.Traversed r m)) (m a) a
 acts = act id
+
+viewM :: Applicative m => LensLike' (Const (CLIF.Traversed r m)) s r -> s -> m r
+viewM l s = getEffect $ l (Const . CLIF.Traversed . Prelude.pure) s
+
+toListMOf :: Applicative m => LensLike' (Const (CLIF.Traversed (Endo [r]) m)) s r -> s -> m [r]
+toListMOf l s = fmap (flip appEndo []) $ getEffect $ l (Const . CLIF.Traversed . fmap (Endo . mappend) . Prelude.pure . Prelude.pure) s
 
 
 -- }}}

@@ -38,7 +38,8 @@ module AblyPrelude.Lens
 
 import qualified Data.Semigroup as DS
 import Data.Monoid
-import Control.Lens as X hiding (set', view)
+import Control.Lens as X hiding (set', view, forOf, iforOf)
+import AblyPrelude.Lens.Withered 
 import qualified Control.Monad.State.Strict as CMSS
 import Data.Generics.Product.Any as X (HasAny(..))
 import Data.Generics.Product.Typed as X (HasType(..))

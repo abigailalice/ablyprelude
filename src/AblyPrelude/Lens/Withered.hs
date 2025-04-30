@@ -52,7 +52,7 @@ module AblyPrelude.Lens.Withered
     , ordNubOfOn
     ) where
 
-import AblyPrelude hiding (get, put, forOf, iforOf, filtered, ifiltered)
+import AblyPrelude hiding (get, put, filtered, ifiltered)
 import Prelude hiding (filter)
 import qualified Data.List.NonEmpty as DLN
 import qualified Data.Set as DS
@@ -76,17 +76,6 @@ type IndexedWither k s t a b = forall f. Applicative f => IndexedWitherLike k f 
 type IndexedWither' k s a = IndexedWither k s s a a
 
 -- {{{ Consumers of optics
-
--- |This is 'iforOf' with a more relaxed type. I worry this might cause
--- type-inference issues, but it is necessary for monadic changing optics
-iforOf :: (Indexed k a fb -> s -> ft) -> s -> (k -> a -> fb) -> ft
-iforOf l s f = l (Indexed f) s
-
--- |This is 'forOf' with a more relaxed type. I worry this might cause
--- type-inference issues, but it is necessary for monadic changing optics. This
--- can be made even more relaxed, using 'afb' in place of 'a -> fb'.
-forOf :: ((a -> fb) -> s -> ft) -> s -> (a -> fb) -> ft
-forOf = flip
 
 witherOf
     :: ((a -> MaybeT m b) -> s -> m t)
