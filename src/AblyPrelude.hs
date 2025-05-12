@@ -20,6 +20,7 @@ module AblyPrelude
     , nfIO
     , whnfIO
     , errorIO
+    , newLined
     , show
     , pattern (:=>), type (:=>)
     , shuffle
@@ -44,9 +45,14 @@ module AblyPrelude
     , lines
     , indented
     , indented1
+    , leftPadded
+    , leftPadded1
     , reindex
     , forOf
     , iforOf
+    , bimapped
+    , bifolded
+    , bitraversed
     ) where
 
 import qualified Prelude as Prelude
@@ -131,6 +137,15 @@ import qualified System.Random as SR
 import AblyPrelude.Development as X
 import Control.Lens hiding (sequenceOf, view, forOf, iforOf)
 import Control.Lens as X hiding (sequenceOf, view, forOf, iforOf)
+
+bimapped :: Bifunctor p => Setter (p a b) (p a' b) a a'
+bimapped = setting first
+
+bifolded :: Bifoldable p => Fold (p a b) a
+bifolded = folding $ bifoldMap (pure @[]) (const mempty)
+
+bitraversed :: Bitraversable p => Traversal (p a b) (p a' b) a a'
+bitraversed f = bitraverse f pure
 
 -- {{{ optic consumers
 
@@ -223,14 +238,21 @@ outward :: (Profunctor p)
     -> p s (Const r a) -> p s (Const t a)
 outward g = out (view g)
 
-indented :: Profunctor p => Int -> p s (Const Text a) -> p s (Const Text a)
-indented n = out (indent n)
+leftPadded, leftPadded1
+    :: Profunctor p => Text -> p s (Const Text a) -> p s (Const Text a)
+leftPadded n = out $ over (lines . mapped) (n <>)
+leftPadded1 n = out $ over (lines . dropping 1 traverse) (n <>)
 
-indented1 :: Profunctor p => Int -> p s (Const Text a) -> p s (Const Text a)
-indented1 n = out (DT.drop n . indent n)
+indented, indented1
+    :: Profunctor p => Int -> p s (Const Text a) -> p s (Const Text a)
+indented n = leftPadded (DT.replicate n " ")
+indented1 n = leftPadded1 (DT.replicate n " ")
 
 output :: Profunctor p => Setter (p a b) (p a b') b b'
 output = setting rmap
+
+newLined :: Profunctor p => p s (Const Text a) -> p s (Const Text a)
+newLined = out ("\n" <>)
 
 input :: Profunctor p => Setter (p a b) (p a' b) a' a
 input = setting lmap
@@ -290,10 +312,6 @@ bind = (=<<)
 show :: (Show a, Lens.IsText b) => a -> b
 show = Lens.view Lens.packed . Prelude.show
 
-indent :: Int -> Text -> Text
-indent 0 = id
-indent n = over (lines . mapped) (DT.replicate n " " <>)
-
 -- {{{ strictness
 
 {-# INLINE nfIO #-}
@@ -317,6 +335,6 @@ whnfIO = liftIO . Exception.evaluate
 -- }}}
 
 {-# INLINE errorIO #-}
-errorIO :: (GS.HasCallStack, MonadIO m) => [Char] -> m a
-errorIO = liftIO . whnfIO . error
+errorIO :: (GS.HasCallStack, MonadIO m) => Text -> m a
+errorIO = liftIO . whnfIO . error . DT.unpack
 

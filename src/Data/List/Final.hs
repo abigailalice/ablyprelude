@@ -9,10 +9,13 @@ module Data.List.Final
     , unsnoc
     , head
     , last
+    , First1(..)
+    , Last1(..)
     ) where
 
 import Prelude hiding (reverse, last, head)
 import Data.Monoid (Dual(..), First(..), Last(..))
+import Control.Applicative (Alternative(..))
 import Control.Lens hiding (List, uncons, unsnoc)
 import Data.These hiding (partitionThese)
 import Witherable
@@ -28,6 +31,10 @@ instance Applicative List where
 
 instance Monad List where
     List x >>= f = x f
+
+instance Alternative List where
+    empty = mempty
+    (<|>) = (<>)
 
 instance Semigroup (List a) where
     List a <> List b = List (a <> b)
@@ -66,6 +73,13 @@ instance Semigroup (First1 a) where
     First1 (Just (x, xs)) <> First1 (Just (y, ys)) = First1 $ Just (x, xs <> pure y <> ys)
 instance Monoid (First1 a) where
     mempty = First1 Nothing
+instance Foldable First1 where
+    foldMap _ (First1 Nothing) = mempty
+    foldMap f (First1 (Just (a, as))) = f a <> foldMap f as
+instance Functor First1 where
+    fmap _ (First1 Nothing) = First1 Nothing
+    fmap f (First1 (Just (a, as))) = First1 (Just (f a, fmap f as))
+
 
 uncons :: List a -> Maybe (a, List a)
 uncons (List m) = unFirst1 $ m \a -> First1 (Just (a, mempty))

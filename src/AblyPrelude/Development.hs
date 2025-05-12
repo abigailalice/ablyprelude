@@ -1,5 +1,5 @@
 
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 module AblyPrelude.Development
     ( module X
@@ -22,8 +22,12 @@ module AblyPrelude.Development
     , pTraceJson
     , pTraceJsonM
     , GS.HasCallStack
+    , GS.CallStack
+    , GS.withFrozenCallStack
+    , GS.popCallStack
     , GS.callStack
     , GS.prettyCallStack
+    , showCallStack
     , embedFile
     ) where
 
@@ -130,6 +134,19 @@ deadCode = error
 {-# WARNING notImplemented "'notImplemented' remains in code" #-}
 notImplemented :: GS.HasCallStack => a
 notImplemented = Prelude.undefined
+
+showCallStack :: GS.CallStack -> [DT.Text]
+showCallStack = fmap prettyCallSite . GS.getCallStack
+  where
+    prettyCallSite (f, GS.SrcLoc {..}) = DT.concat
+        [ DT.pack srcLocFile
+        , ":("
+        , DT.pack $ show srcLocStartLine
+        , ","
+        , DT.pack $ show srcLocStartCol
+        , ") "
+        , DT.pack f
+        ]
 
 debugTraceM :: (Applicative m, GS.HasCallStack) => DT.Text -> m ()
 debugTraceM msg = DT.traceM (GS.prettyCallStack (pop GS.callStack) <> "\n" <> DT.unpack msg)
