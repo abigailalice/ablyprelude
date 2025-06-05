@@ -53,6 +53,7 @@ module AblyPrelude
     , bimapped
     , bifolded
     , bitraversed
+    , toMapOf
     ) where
 
 import qualified Prelude as Prelude
@@ -167,6 +168,9 @@ forOf = flip
 
 sequenceOf :: Applicative m => LensLike m s t (m a) a -> s -> m t
 sequenceOf l = l id
+
+toMapOf :: Ord k => (a -> a -> a) -> IndexedFold k s a -> s -> Map k a
+toMapOf f l s = DM.fromListWith f $ itoListOf l s
 
 toMultiMapOf :: Ord k => IndexedFold k s a -> s -> DM.Map k (DLN.NonEmpty a)
 toMultiMapOf f s = DM.fromListWith (<>) $ itoListOf (f <. to pure) s
