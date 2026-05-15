@@ -2,5 +2,6 @@
 dist-newstyle/
 AblyPrelude.cabal
 *~
+*.hie
 **/.DS_Store
 *.lock
