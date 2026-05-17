@@ -21,6 +21,7 @@ module AblyPrelude.Development
     , pShowJson
     , pTraceJson
     , pTraceJsonM
+    , traceJsonM
     , GS.HasCallStack
     , GS.CallStack
     , GS.withFrozenCallStack
@@ -177,4 +178,8 @@ pTraceJson x = trace (DT.unpack $ pShowJson x) x
 
 pTraceJsonM :: Applicative m => DA.ToJSON a => a -> m ()
 pTraceJsonM = traceM . pShowJson
+
+-- | Pretty-print a JSON value to stderr with the call site's stack trace.
+traceJsonM :: (Applicative m, GS.HasCallStack, DA.ToJSON a) => a -> m ()
+traceJsonM x = DT.traceM $ GS.prettyCallStack GS.callStack <> "\n" <> DT.unpack (pShowJson x)
 
